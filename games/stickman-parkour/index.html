@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Stickman Parkour</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101827;color:#eaf5ff;font:15px system-ui,sans-serif;overflow:hidden}canvas{display:block;width:100vw;height:100dvh;touch-action:none}.hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none;text-shadow:0 2px 3px #000}.badge{background:#15243bd9;padding:8px 12px;border:1px solid #54728b;border-radius:12px}.controls{position:fixed;bottom:18px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none}.group{display:flex;gap:12px}.btn{pointer-events:auto;touch-action:none;border:2px solid #8ecaff;background:#1a3958d9;color:white;border-radius:18px;width:75px;height:72px;font-size:26px;font-weight:bold;user-select:none;-webkit-user-select:none}.jump{width:105px;background:#17675e;border-color:#71f4c9;font-size:17px}.overlay{position:fixed;inset:0;display:grid;place-items:center;background:#071321a8}.card{max-width:360px;margin:20px;padding:24px;text-align:center;border:1px solid #80b6d1;background:#13243a;border-radius:20px}.card h1{margin-top:0}.card button{background:#64d9bb;color:#102c2b;border:0;border-radius:12px;padding:14px 24px;font-size:18px;font-weight:800}.hidden{display:none}small{color:#c1d8e9}
+</style></head><body>
+<canvas id="game"></canvas><div class="hud"><div class="badge" id="status">STICKMAN PARKOUR</div><div class="badge" id="progress">0 m</div></div>
+<div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><button class="btn jump" data-key="jump">JUMP</button></div>
+<div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap tepi, lalu tekan JUMP lagi dalam <b>0,7 detik</b> untuk naik. Hindari rintangan bergerak!</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
+<script>
+(()=>{
+const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.getElementById('overlay'),status=document.getElementById('status'),progress=document.getElementById('progress');
+let W,H,scale,ground,camera=0,active=false,won=false,last=0,now=0;
+const keys={left:false,right:false};let jumpQueue=false;
+const world=3600,GRAV=1700,SPEED=250,JUMP=610,SECOND=470,HOLD=.7;
+let p,blocks,hazards,checkpoint;
+function resize(){W=innerWidth;H=innerHeight;c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ground=H-115}
+addEventListener('resize',resize);resize();
+function reset(){
+p={x:60,y:ground-54,w:23,h:54,vx:0,vy:0,grounded:true,grab:null,hold:0,face:1};
+blocks=[
+{x:360,w:105,h:58},{x:630,w:110,h:110},{x:940,w:100,h:142},
+{x:1250,w:130,h:90},{x:1600,w:105,h:155},{x:1920,w:145,h:85},
+{x:2290,w:110,h:130},{x:2640,w:135,h:155},{x:3030,w:125,h:110}];
+hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
+checkpoint=60;camera=0;won=false;now=0;status.textContent='LARI & LOMPAT';
+}
+function jump(){if(!active)return;if(p.grab){p.grab=null;p.vy=-SECOND;p.y-=3;status.textContent='SECOND JUMP!';return}if(p.grounded){p.grounded=false;p.vy=-JUMP;status.textContent='JUMP!'}}
+function input(k,down){if(k==='jump'){if(down)jump();return}keys[k]=down}
+document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);input(k,true)});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,e=>{e.preventDefault();input(k,false)})});
+addEventListener('keydown',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();if(!e.repeat)input(k,true)}});
+addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':null;if(k){e.preventDefault();input(k,false)}});
+document.getElementById('start').onclick=()=>{reset();active=true;overlay.classList.add('hidden');last=performance.now()};
+function fail(){p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;status.textContent='JATUH! COBA LAGI';}
+function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function tick(dt){
+now+=dt;
+for(const h of hazards)h.y=h.base+Math.sin(now*h.speed+h.phase)*h.amp;
+if(p.grab){
+p.hold-=dt;p.vx=p.vy=0;
+if(p.hold<=0){p.grab=null;p.vy=65;status.textContent='PEGANGAN LEPAS!'}
+else status.textContent='GRAB '+p.hold.toFixed(2)+'s · JUMP!';
+}else{
+const oldX=p.x,oldY=p.y;
+p.vx=((keys.right?1:0)-(keys.left?1:0))*SPEED;
+if(p.vx)p.face=Math.sign(p.vx);
+p.x=Math.max(0,Math.min(world-p.w,p.x+p.vx*dt));
+p.vy+=GRAV*dt;p.y+=p.vy*dt;p.grounded=false;
+for(const b of blocks){
+const top=ground-b.h;
+if(p.x+p.w>b.x&&p.x<b.x+b.w){
+if(oldY+p.h<=top+7&&p.y+p.h>=top&&p.vy>=0){p.y=top-p.h;p.vy=0;p.grounded=true}
+else if(oldY>=ground&&p.y<=ground){} 
+else if(p.y<ground&&p.y+p.h>top){
+if(oldX+p.w<=b.x+4&&p.vx>0){p.x=b.x-p.w;
+const handY=p.y+12;
+if(p.vy<120&&Math.abs(handY-top)<34){p.grab=b;p.hold=HOLD;p.y=top-12;p.vy=0;status.textContent='GRAB!'}
+}else if(oldX>=b.x+b.w-4&&p.vx<0){p.x=b.x+b.w}
+}
+}
+}
+if(p.y+p.h>=ground){p.y=ground-p.h;p.vy=0;p.grounded=true}
+}
+if(p.grab){p.x=p.face===1?p.grab.x-p.w:p.x}
+for(const h of hazards)if(rectHit(p,h)){fail();break}
+if(p.y>H+150)fail();
+if(p.x>world-135){active=false;won=true;document.getElementById('title').textContent='FINISH! 🏁';document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati.';document.getElementById('start').textContent='MAIN LAGI';overlay.classList.remove('hidden')}
+if(p.x>checkpoint+500)checkpoint=Math.min(p.x-180,world-300);
+camera+=(Math.max(0,Math.min(world-W,p.x-W*.32))-camera)*Math.min(1,dt*7);
+progress.textContent=Math.floor(p.x/10)+' m';
+}
+function draw(){
+ctx.clearRect(0,0,W,H);
+const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#14263d');sky.addColorStop(1,'#284b5a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#ffffff12';for(let i=0;i<35;i++){const x=((i*191-camera*.17)%(W+150)+(W+150))%(W+150);ctx.fillRect(x,i*53%Math.max(1,H-120),2,2)}
+ctx.save();ctx.translate(-camera,0);
+ctx.fillStyle='#345969';ctx.fillRect(0,ground,world, H-ground);
+ctx.fillStyle='#73cfac';ctx.fillRect(0,ground,world,7);
+for(const b of blocks){const y=ground-b.h;ctx.fillStyle='#3f6581';ctx.fillRect(b.x,y,b.w,b.h);ctx.fillStyle='#91d6cf';ctx.fillRect(b.x,y,b.w,9);ctx.fillStyle='#233f58';for(let a=b.x+14;a<b.x+b.w-5;a+=30)ctx.fillRect(a,y+23,14,5)}
+for(const h of hazards){ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
+ctx.fillStyle='#f4d477';ctx.fillRect(world-100,ground-210,7,210);ctx.fillStyle='#67e2ba';ctx.fillRect(world-93,ground-210,80,45);
+const x=p.x+p.w/2,y=p.y;
+ctx.strokeStyle='#f6f7fa';ctx.lineWidth=4;ctx.lineCap='round';
+ctx.beginPath();ctx.arc(x,y+10,9,0,Math.PI*2);ctx.stroke();
+ctx.beginPath();ctx.moveTo(x,y+20);ctx.lineTo(x,y+39);
+if(p.grab){const edge=p.grab.x;ctx.moveTo(x,y+26);ctx.lineTo(edge,y+1);ctx.moveTo(x,y+28);ctx.lineTo(edge,y+1)}
+else{ctx.moveTo(x,y+26);ctx.lineTo(x-12*p.face,y+36);ctx.moveTo(x,y+26);ctx.lineTo(x+12*p.face,y+35)}
+ctx.moveTo(x,y+39);ctx.lineTo(x-10,y+54);ctx.moveTo(x,y+39);ctx.lineTo(x+10,y+54);ctx.stroke();
+if(p.grab){ctx.strokeStyle='#7ff9c9';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y+10,18,-Math.PI*.8,-Math.PI*.2);ctx.stroke()}
+ctx.restore();
+}
+function loop(t){let dt=Math.min(.032,(t-last)/1000||0);last=t;if(active)tick(dt);draw();requestAnimationFrame(loop)}
+reset();requestAnimationFrame(loop);
+})();
+</script></body></html>
