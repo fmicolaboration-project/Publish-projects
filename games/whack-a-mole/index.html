@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6fc8f0"><title>Pukul Tikus! | FMI Mini Games</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#183b38;font-synthesis:none}*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:linear-gradient(#82d8ff 0%,#d9f7ff 51%,#9ade81 51%,#6bbd62 100%);display:grid;place-items:center;padding:18px;overflow-x:hidden}
+.game{width:min(100%,530px);padding:20px;border:3px solid #ffffffaa;border-radius:28px;background:#fffdf4ee;box-shadow:0 15px 0 #45865a55,0 24px 55px #296b5680;text-align:center}
+h1{font-size:clamp(29px,7vw,43px);line-height:1.05;margin:6px 0;color:#ed7249;text-shadow:2px 3px #ffd7a4} .intro{margin:9px 0 16px;font-weight:650;color:#658177;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}.stat{border-radius:15px;background:white;padding:9px 4px;box-shadow:inset 0 -3px #e6e4d8}.stat small{display:block;color:#78918b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.stat strong{font-size:25px;font-variant-numeric:tabular-nums}
+.board{border-radius:24px;background:linear-gradient(#b4e77e,#7dc65c);border:4px solid #65ad4a;padding:13px 10px 17px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px;box-shadow:inset 0 5px #d8f5b4}
+.hole{border:0;cursor:pointer;touch-action:manipulation;position:relative;aspect-ratio:1/1.03;border-radius:50%;background:transparent;overflow:hidden;padding:0;outline-offset:3px}
+.pit{position:absolute;left:6%;right:6%;bottom:3%;height:43%;border-radius:50%;background:radial-gradient(ellipse at 50% 36%,#4c2b2a,#251b21 80%);border:7px solid #9a6740;box-shadow:0 7px #5c8d3d}
+.mole{position:absolute;left:18%;width:64%;height:74%;bottom:-65%;border-radius:46% 46% 32% 32%;background:linear-gradient(100deg,#a87650,#dbaf7b 55%,#a77754);border:3px solid #926643;box-shadow:inset -7px -2px #a56a49;transition:bottom .16s cubic-bezier(.2,1.4,.55,1);display:flex;justify-content:center;align-items:center}
+.hole.active .mole{bottom:13%}.ear{position:absolute;top:-10%;width:30%;height:31%;background:#ba865e;border:3px solid #93633f;border-radius:50%}.ear.left{left:-12%}.ear.right{right:-12%}.ear:after{content:"";position:absolute;inset:24%;background:#ecada4;border-radius:50%}
+.face{position:relative;width:80%;height:65%;margin-top:15%;}.eyes{display:flex;justify-content:space-evenly}.eye{width:12%;aspect-ratio:1;border-radius:50%;background:#2b292a}.nose{margin:8% auto 0;width:23%;height:20%;border-radius:50%;background:#f4a8a0}.mouth{font-size:14px;line-height:7px}
+.hole.hit .mole{filter:brightness(1.35);transform:rotate(-8deg)}.burst{position:absolute;inset:0;display:grid;place-items:center;font-size:34px;opacity:0;pointer-events:none}.hole.hit .burst{animation:burst .3s ease-out}@keyframes burst{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.actions{margin:18px 0 4px}.action{border:0;background:#ff9353;color:#fff;font-size:18px;font-weight:900;border-radius:17px;padding:13px 31px;box-shadow:0 5px #cb6636;cursor:pointer;touch-action:manipulation}.action:active{transform:translateY(3px);box-shadow:0 2px #cb6636}.action:focus-visible,.hole:focus-visible{outline:4px solid #007caa}.message{min-height:23px;margin:10px 0 0;font-weight:750;color:#557669}
+footer{font-size:11px;margin-top:12px;color:#6f8f81}.hole:not(.active){cursor:default}
+@media(max-width:380px){.game{padding:13px}.board{gap:5px;padding:8px}.pit{border-width:5px}.mole{border-width:2px}.ear{border-width:2px}}@media(prefers-reduced-motion:reduce){.mole{transition:none}.hole.hit .burst{animation:none}}
+</style></head>
+<body>
+<main class="game">
+<h1>🐹 Pukul Tikus!</h1><p class="intro">Ketuk tikus yang muncul! Kumpulkan poin dalam 30 detik.</p>
+<section class="stats" aria-label="Statistik permainan"><div class="stat"><small>Skor</small><strong id="score">0</strong></div><div class="stat"><small>Waktu</small><strong id="time">30</strong></div><div class="stat"><small>Terbaik</small><strong id="best">0</strong></div></section>
+<section class="board" id="board" aria-label="Papan 9 lubang"></section>
+<div class="actions"><button class="action" id="start" type="button">▶ Mulai Main</button></div>
+<p class="message" id="message" role="status" aria-live="polite">Siap menguji refleksmu?</p>
+<footer>FMI Mini Games • Bisa dimainkan di HP dan komputer</footer>
+</main>
+<script>
+(()=>{
+const board=document.querySelector('#board'),scoreEl=document.querySelector('#score'),timeEl=document.querySelector('#time'),bestEl=document.querySelector('#best'),button=document.querySelector('#start'),message=document.querySelector('#message');
+let score=0,seconds=30,active=-1,playing=false,tick=null,spawn=null,hide=null,last=-1,startAt=0;
+const key='fmi-whack-best-v1';let best=0;try{best=Number(localStorage.getItem(key))||0}catch{}bestEl.textContent=best;
+for(let i=0;i<9;i++){const hole=document.createElement('button');hole.type='button';hole.className='hole';hole.setAttribute('aria-label','Lubang '+(i+1));hole.innerHTML='<span class="pit"></span><span class="mole"><span class="ear left"></span><span class="ear right"></span><span class="face"><span class="eyes"><span class="eye"></span><span class="eye"></span></span><span class="nose"></span><span class="mouth">⌣</span></span></span><span class="burst" aria-hidden="true">✨</span>';hole.addEventListener('click',()=>hit(i));board.append(hole)}
+const holes=[...board.children];const clear=()=>{clearTimeout(spawn);clearTimeout(hide);clearInterval(tick)};
+function remove(){if(active>=0)holes[active].classList.remove('active');active=-1}
+function next(){if(!playing)return;remove();let i=Math.floor(Math.random()*9);if(i===last)i=(i+1+Math.floor(Math.random()*8))%9;last=i;active=i;holes[i].classList.add('active');const elapsed=(Date.now()-startAt)/1000;const visible=Math.max(470,1050-elapsed*17);hide=setTimeout(()=>{remove();spawn=setTimeout(next,Math.max(110,400-elapsed*7))},visible)}
+function hit(i){if(!playing||active!==i)return;score+=10;scoreEl.textContent=score;holes[i].classList.add('hit');setTimeout(()=>holes[i].classList.remove('hit'),300);remove();clearTimeout(hide);clearTimeout(spawn);spawn=setTimeout(next,125)}
+function finish(){playing=false;clear();remove();button.disabled=false;button.textContent='↻ Main Lagi';if(score>best){best=score;bestEl.textContent=best;try{localStorage.setItem(key,String(best))}catch{}message.textContent='🏆 Rekor baru! Skor kamu: '+score}else message.textContent='⏰ Waktu habis! Skor kamu: '+score}
+function start(){if(playing)return;clear();remove();score=0;seconds=30;last=-1;startAt=Date.now();playing=true;scoreEl.textContent='0';timeEl.textContent='30';button.disabled=true;button.textContent='Sedang bermain…';message.textContent='Ayo, tangkap tikusnya!';spawn=setTimeout(next,400);tick=setInterval(()=>{seconds=Math.max(0,30-Math.floor((Date.now()-startAt)/1000));timeEl.textContent=seconds;if(seconds<=0)finish()},100)}
+button.addEventListener('click',start);document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing)finish()});
+})();
+</script></body></html>
