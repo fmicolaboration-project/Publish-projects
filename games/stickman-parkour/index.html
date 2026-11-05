@@ -5,19 +5,19 @@
 </style></head><body>
 <canvas id="game"></canvas><div class="hud"><div class="badge" id="status">STICKMAN PARKOUR</div><div class="badge" id="progress">0 m</div></div>
 <div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><button class="btn jump" data-key="jump">JUMP</button></div>
-<div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap bibir atas tembok, lalu tahan arah menuju tembok + JUMP bersamaan dalam <b>0,7 detik</b> untuk memanjat dan berdiri di atasnya. Hindari rintangan bergerak dan spike di bawah platform melayang! Sebelum platform melayang, lakukan lima wall-jump bergantian dengan arah menjauhi dinding + JUMP. Di akhir, seberangi jembatan plank yang runtuh dari kiri ke kanan.</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
+<div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap bibir atas tembok, lalu tahan arah menuju tembok + JUMP bersamaan dalam <b>0,7 detik</b> untuk memanjat dan berdiri di atasnya. Hindari rintangan bergerak dan spike di bawah platform melayang! Sebelum platform melayang, masuki portal ungu agar membesar, lakukan lima wall-jump bergantian (arah berlawanan + JUMP), lalu sentuh portal hijau di puncak untuk kembali normal. Di akhir, seberangi jembatan plank yang runtuh dari kiri ke kanan.</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
 <script>
 (()=>{
 const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.getElementById('overlay'),status=document.getElementById('status'),progress=document.getElementById('progress');
 let W,H,scale,ground,camera=0,cameraY=0,active=false,won=false,last=0,now=0;
 const keys={left:false,right:false,jump:false};
 const world=5370,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
-let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers;
+let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals;
 function resize(){W=innerWidth;H=innerHeight;c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ground=H-115}
 addEventListener('resize',resize);resize();
 function reset(){
 keys.left=keys.right=keys.jump=false;
-p={x:60,y:ground-54,w:23,h:54,vx:0,vy:0,grounded:true,grab:null,climb:null,hold:0,face:1,runPhase:0,wallDir:0,wallJumps:0,wallLock:0,wallGrace:0};
+p={x:60,y:ground-54,w:23,h:54,vx:0,vy:0,grounded:true,grab:null,climb:null,hold:0,face:1,runPhase:0,wallDir:0,wallJumps:0,wallLock:0,wallGrace:0,portalStage:0};
 blocks=[
 {x:360,w:105,h:58},{x:630,w:110,h:110},{x:940,w:100,h:142},
 {x:1250,w:130,h:90},{x:1600,w:105,h:155},{x:1920,w:145,h:85},
@@ -26,6 +26,10 @@ blocks=[
 // The left wall is raised at its bottom so the player can walk into the shaft.
 towers=[{x:3300,w:90,top:ground-890,bottom:ground-125},
 {x:3560,w:90,top:ground-790,bottom:ground}];
+// The first portal enlarges the hero inside the shaft; the second restores
+// the original size at the right tower's upper landing.
+portals=[{x:3423,y:ground-104,w:38,h:100,kind:'grow'},
+{x:3584,y:ground-790-108,w:42,h:103,kind:'restore'}];
 // Late-game suspended platforms. They are one-way: landing works from above.
 platforms=[{x:4000,w:130,y:ground-85},{x:4155,w:130,y:ground-125},
 // Final obstacle: launch platform and finish-side landing platform.
@@ -40,7 +44,7 @@ function jump(){
 if(!active||p.climb)return;
 // Wall jump only when pushing away from the wall + JUMP.
 const away=(keys.right?1:0)-(keys.left?1:0);
-if(!p.grounded&&p.wallDir&&away===-p.wallDir&&p.wallJumps<5){
+if(p.portalStage===1&&!p.grounded&&p.wallDir&&away===-p.wallDir&&p.wallJumps<5){
 p.vy=-850;p.wallLock=.18;p.wallDir=0;p.wallGrace=0;p.wallJumps++;p.face=away;
 status.textContent='WALL JUMP '+p.wallJumps+'/5';return;
 }
@@ -70,7 +74,7 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addE
 addEventListener('keydown',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();if(!e.repeat)input(k,true)}});
 addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();input(k,false)}});
 document.getElementById('start').onclick=()=>{reset();active=true;overlay.classList.add('hidden');last=performance.now()};
-function fail(){for(const plank of bridgePlanks)plank.triggerAt=null;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
+function fail(){for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function tick(dt){
 now+=dt;
@@ -157,6 +161,16 @@ if(p.grounded){p.wallDir=0;p.wallGrace=0;if(p.x<3300)p.wallJumps=0;}
 if(p.wallDir&&p.wallLock===0&&!p.grounded&&p.vy>0)status.textContent='WALL SLIDE · OPPOSIT + JUMP';
 }
 if(p.grab){p.x=p.face===1?p.grab.x-p.w:p.x}
+// Touch portals by walking or jumping through them. Preserve the feet position
+// when resizing, and keep the next portal inactive until the first was used.
+if(p.portalStage===0&&rectHit(p,portals[0])){
+const feet=p.y+p.h;p.w=38;p.h=89;p.y=feet-p.h;
+p.portalStage=1;status.textContent='PORTAL BESAR! WALL JUMP 5X';
+}else if(p.portalStage===1&&rectHit(p,portals[1])){
+const feet=p.y+p.h;p.w=23;p.h=54;p.y=feet-p.h;
+p.portalStage=2;p.wallDir=0;p.wallGrace=0;
+status.textContent='UKURAN NORMAL!';
+}
 for(const h of hazards)if(rectHit(p,h)){fail();return}
 for(const spike of spikes)if(rectHit(p,spike)){fail();return}
 if(p.y>H+150)fail();
@@ -182,6 +196,20 @@ ctx.fillStyle='#ffffff12';for(let i=0;i<35;i++){const x=((i*191-camera*.17)%(W+1
 ctx.save();ctx.translate(-camera,cameraY);
 ctx.fillStyle='#345969';ctx.fillRect(0,ground,world, H-ground);
 ctx.fillStyle='#73cfac';ctx.fillRect(0,ground,world,7);
+for(const portal of portals){
+ctx.save();
+const glow=0.65+0.2*Math.sin(now*4);
+ctx.shadowColor=portal.kind==='grow'?'#a97aff':'#65f9d6';ctx.shadowBlur=18;
+ctx.strokeStyle=portal.kind==='grow'?'#c58aff':'#71ffe0';
+ctx.lineWidth=6;ctx.beginPath();
+ctx.ellipse(portal.x+portal.w/2,portal.y+portal.h/2,portal.w/2,portal.h/2,0,0,Math.PI*2);
+ctx.stroke();ctx.shadowBlur=0;
+ctx.fillStyle=portal.kind==='grow'?'rgba(167,102,255,0.23)':'rgba(70,245,194,0.23)';
+ctx.globalAlpha=glow;ctx.fill();ctx.globalAlpha=1;
+ctx.fillStyle='#f8faff';ctx.textAlign='center';ctx.font='bold 12px system-ui';
+ctx.fillText(portal.kind==='grow'?'BESAR':'NORMAL',portal.x+portal.w/2,portal.y-14);
+ctx.restore();
+}
 for(const wall of towers){
 ctx.fillStyle='#3b5e78';ctx.fillRect(wall.x,wall.top,wall.w,wall.bottom-wall.top);
 ctx.fillStyle='#86cdd0';ctx.fillRect(wall.x,wall.top,wall.w,9);
@@ -219,6 +247,8 @@ ctx.beginPath();ctx.moveTo(sx,ground);ctx.lineTo(sx+step/2,spike.y);ctx.lineTo(s
 for(const h of hazards){ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
 ctx.fillStyle='#f4d477';ctx.fillRect(world-100,ground-210,7,210);ctx.fillStyle='#67e2ba';ctx.fillRect(world-93,ground-210,80,45);
 const x=p.x+p.w/2,y=p.y,face=p.face;
+// Stick-figure art remains proportional to the actual collision box.
+ctx.save();ctx.translate(x,y);ctx.scale(p.h/54,p.h/54);ctx.translate(-x,-y);
 const running=p.grounded&&!p.grab&&!p.climb&&Math.abs(p.vx)>1;
 const stride=running?Math.sin(p.runPhase):0;
 const arm=running?Math.sin(p.runPhase+Math.PI):0;
@@ -254,7 +284,8 @@ line(x,y+39,x-10,y+54);line(x,y+39,x+10,y+54);
 }
 ctx.stroke();
 if(p.grab){ctx.strokeStyle='#7ff9c9';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y+10,18,-Math.PI*.8,-Math.PI*.2);ctx.stroke()}
-ctx.restore();
+ctx.restore(); // Character scale
+ctx.restore(); // World camera
 }
 function loop(t){let dt=Math.min(.032,(t-last)/1000||0);last=t;if(active)tick(dt);draw();requestAnimationFrame(loop)}
 reset();requestAnimationFrame(loop);
