@@ -5,17 +5,18 @@
 </style></head><body>
 <canvas id="game"></canvas><div class="hud"><div class="badge" id="status">STICKMAN PARKOUR</div><div class="badge" id="progress">0 m</div></div>
 <div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><button class="btn jump" data-key="jump">JUMP</button></div>
-<div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap bibir atas tembok, lalu tekan JUMP dalam <b>0,7 detik</b> untuk memanjat dan berdiri di atasnya. Hindari rintangan bergerak!</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
+<div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap bibir atas tembok, lalu tahan arah menuju tembok + JUMP bersamaan dalam <b>0,7 detik</b> untuk memanjat dan berdiri di atasnya. Hindari rintangan bergerak!</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
 <script>
 (()=>{
 const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.getElementById('overlay'),status=document.getElementById('status'),progress=document.getElementById('progress');
 let W,H,scale,ground,camera=0,active=false,won=false,last=0,now=0;
-const keys={left:false,right:false};let jumpQueue=false;
+const keys={left:false,right:false,jump:false};
 const world=3600,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
 let p,blocks,hazards,checkpoint;
 function resize(){W=innerWidth;H=innerHeight;c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ground=H-115}
 addEventListener('resize',resize);resize();
 function reset(){
+keys.left=keys.right=keys.jump=false;
 p={x:60,y:ground-54,w:23,h:54,vx:0,vy:0,grounded:true,grab:null,climb:null,hold:0,face:1};
 blocks=[
 {x:360,w:105,h:58},{x:630,w:110,h:110},{x:940,w:100,h:142},
@@ -27,6 +28,9 @@ checkpoint=60;camera=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 function jump(){
 if(!active||p.climb)return;
 if(p.grab){
+// Current ledge-grab collision only supports the left face of a wall.
+// Therefore RIGHT is the only valid direction toward that wall.
+if(!keys.right||keys.left)return;
 const b=p.grab,top=ground-b.h;
 const target={x:b.x+14,y:top-p.h,w:p.w,h:p.h};
 // A climb must finish on the solid top, never inside another obstacle.
@@ -37,10 +41,16 @@ status.textContent='MEMANJAT!';return;
 }
 if(p.grounded){p.grounded=false;p.vy=-JUMP;status.textContent='JUMP!'}
 }
-function input(k,down){if(k==='jump'){if(down)jump();return}keys[k]=down}
+function input(k,down){
+const wasDown=keys[k];keys[k]=down;
+if(!down||wasDown)return;
+if(k==='jump'){jump();return}
+// Multitouch order is independent: RIGHT then JUMP or JUMP then RIGHT.
+if(k==='right'&&keys.jump&&p.grab)jump();
+}
 document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);input(k,true)});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,e=>{e.preventDefault();input(k,false)})});
 addEventListener('keydown',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();if(!e.repeat)input(k,true)}});
-addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':null;if(k){e.preventDefault();input(k,false)}});
+addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();input(k,false)}});
 document.getElementById('start').onclick=()=>{reset();active=true;overlay.classList.add('hidden');last=performance.now()};
 function fail(){p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
