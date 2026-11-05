@@ -196,6 +196,11 @@ ctx.fillStyle='#ffffff12';for(let i=0;i<35;i++){const x=((i*191-camera*.17)%(W+1
 ctx.save();ctx.translate(-camera,cameraY);
 ctx.fillStyle='#345969';ctx.fillRect(0,ground,world, H-ground);
 ctx.fillStyle='#73cfac';ctx.fillRect(0,ground,world,7);
+for(const wall of towers){
+ctx.fillStyle='#3b5e78';ctx.fillRect(wall.x,wall.top,wall.w,wall.bottom-wall.top);
+ctx.fillStyle='#86cdd0';ctx.fillRect(wall.x,wall.top,wall.w,9);
+ctx.fillStyle='#27455c';for(let yy=wall.top+25;yy<wall.bottom;yy+=38)ctx.fillRect(wall.x+12,yy,wall.w-24,6);
+}
 for(const portal of portals){
 ctx.save();
 const glow=0.65+0.2*Math.sin(now*4);
@@ -209,11 +214,6 @@ ctx.globalAlpha=glow;ctx.fill();ctx.globalAlpha=1;
 ctx.fillStyle='#f8faff';ctx.textAlign='center';ctx.font='bold 12px system-ui';
 ctx.fillText(portal.kind==='grow'?'BESAR':'NORMAL',portal.x+portal.w/2,portal.y-14);
 ctx.restore();
-}
-for(const wall of towers){
-ctx.fillStyle='#3b5e78';ctx.fillRect(wall.x,wall.top,wall.w,wall.bottom-wall.top);
-ctx.fillStyle='#86cdd0';ctx.fillRect(wall.x,wall.top,wall.w,9);
-ctx.fillStyle='#27455c';for(let yy=wall.top+25;yy<wall.bottom;yy+=38)ctx.fillRect(wall.x+12,yy,wall.w-24,6);
 }
 for(const b of blocks){const y=ground-b.h;ctx.fillStyle='#3f6581';ctx.fillRect(b.x,y,b.w,b.h);ctx.fillStyle='#91d6cf';ctx.fillRect(b.x,y,b.w,9);ctx.fillStyle='#233f58';for(let a=b.x+14;a<b.x+b.w-5;a+=30)ctx.fillRect(a,y+23,14,5)}
 // Draw suspended platforms and the finish bridge.
