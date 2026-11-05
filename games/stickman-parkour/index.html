@@ -41,7 +41,7 @@ if(!active||p.climb)return;
 // Wall jump only when pushing away from the wall + JUMP.
 const away=(keys.right?1:0)-(keys.left?1:0);
 if(!p.grounded&&p.wallDir&&away===-p.wallDir&&p.wallJumps<5){
-p.vy=-650;p.wallLock=.16;p.wallDir=0;p.wallJumps++;p.face=away;
+p.vy=-850;p.wallLock=.16;p.wallDir=0;p.wallJumps++;p.face=away;
 status.textContent='WALL JUMP '+p.wallJumps+'/5';return;
 }
 if(p.grab){
