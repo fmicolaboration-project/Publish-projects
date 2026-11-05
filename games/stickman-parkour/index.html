@@ -17,7 +17,7 @@ function resize(){W=innerWidth;H=innerHeight;c.width=W*devicePixelRatio;c.height
 addEventListener('resize',resize);resize();
 function reset(){
 keys.left=keys.right=keys.jump=false;
-p={x:60,y:ground-54,w:23,h:54,vx:0,vy:0,grounded:true,grab:null,climb:null,hold:0,face:1,runPhase:0,wallDir:0,wallJumps:0,wallLock:0};
+p={x:60,y:ground-54,w:23,h:54,vx:0,vy:0,grounded:true,grab:null,climb:null,hold:0,face:1,runPhase:0,wallDir:0,wallJumps:0,wallLock:0,wallGrace:0};
 blocks=[
 {x:360,w:105,h:58},{x:630,w:110,h:110},{x:940,w:100,h:142},
 {x:1250,w:130,h:90},{x:1600,w:105,h:155},{x:1920,w:145,h:85},
@@ -41,7 +41,7 @@ if(!active||p.climb)return;
 // Wall jump only when pushing away from the wall + JUMP.
 const away=(keys.right?1:0)-(keys.left?1:0);
 if(!p.grounded&&p.wallDir&&away===-p.wallDir&&p.wallJumps<5){
-p.vy=-850;p.wallLock=.16;p.wallDir=0;p.wallJumps++;p.face=away;
+p.vy=-850;p.wallLock=.18;p.wallDir=0;p.wallGrace=0;p.wallJumps++;p.face=away;
 status.textContent='WALL JUMP '+p.wallJumps+'/5';return;
 }
 if(p.grab){
@@ -70,7 +70,7 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addE
 addEventListener('keydown',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();if(!e.repeat)input(k,true)}});
 addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();input(k,false)}});
 document.getElementById('start').onclick=()=>{reset();active=true;overlay.classList.add('hidden');last=performance.now()};
-function fail(){for(const plank of bridgePlanks)plank.triggerAt=null;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;status.textContent='JATUH! COBA LAGI';}
+function fail(){for(const plank of bridgePlanks)plank.triggerAt=null;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function tick(dt){
 now+=dt;
@@ -94,27 +94,35 @@ if(p.hold<=0){p.grab=null;p.vy=65;status.textContent='PEGANGAN LEPAS!'}
 else status.textContent='GRAB '+p.hold.toFixed(2)+'s · JUMP!';
 }else{
 const oldX=p.x,oldY=p.y;
-const priorWall=p.wallDir;p.wallDir=0;
 p.wallLock=Math.max(0,p.wallLock-dt);
+p.wallGrace=Math.max(0,p.wallGrace-dt);
 p.vx=((keys.right?1:0)-(keys.left?1:0))*SPEED;
 if(p.vx)p.face=Math.sign(p.vx);
 if(p.grounded&&p.vx)p.runPhase+=Math.abs(p.vx)*dt*.060;
 p.x=Math.max(0,Math.min(world-p.w,p.x+p.vx*dt));
-// Walls are solid on both faces, with one-way landing on their tops.
+// Resolve collisions with both faces. Keep a brief contact grace period
+// when switching from the direction toward the wall to the direction away.
+let touching=0;
 for(const wall of towers){
 const sideOverlap=p.y+p.h>wall.top&&p.y<wall.bottom;
-if(sideOverlap&&p.x+p.w>wall.x&&p.x<wall.x+wall.w){
-if(oldX+p.w<=wall.x+5){p.x=wall.x-p.w;p.wallDir=1;}
-else if(oldX>=wall.x+wall.w-5){p.x=wall.x+wall.w;p.wallDir=-1;}
+if(!sideOverlap)continue;
+if(p.x+p.w>wall.x&&p.x<wall.x+wall.w){
+if(oldX+p.w<=wall.x+5){p.x=wall.x-p.w;touching=1;}
+else if(oldX>=wall.x+wall.w-5){p.x=wall.x+wall.w;touching=-1;}
 }
-// Contact remains available while the player is pressed flush against a wall.
-if(sideOverlap&&Math.abs(p.x+p.w-wall.x)<2&&keys.right)p.wallDir=1;
-if(sideOverlap&&Math.abs(p.x-(wall.x+wall.w))<2&&keys.left)p.wallDir=-1;
+if(Math.abs(p.x+p.w-wall.x)<3&&keys.right)touching=1;
+if(Math.abs(p.x-(wall.x+wall.w))<3&&keys.left)touching=-1;
 }
-p.vy+=GRAV*dt;p.y+=p.vy*dt;p.grounded=false;
+if(touching&&p.wallLock===0){
+p.wallDir=touching;p.wallGrace=.20;
+}else if(p.wallGrace<=0)p.wallDir=0;
+p.vy+=GRAV*dt;
+// Slide slowly down a wall while pressing toward it; wall jumps still launch upward.
+if(touching&&!p.grounded&&p.wallLock===0&&p.vy>110){p.vy=110;status.textContent='WALL SLIDE · OPPOSIT + JUMP';}
+p.y+=p.vy*dt;p.grounded=false;
 for(const wall of towers){
 if(p.x+p.w>wall.x&&p.x<wall.x+wall.w){
-if(p.vy>=0&&oldY+p.h<=wall.top+6&&p.y+p.h>=wall.top){p.y=wall.top-p.h;p.vy=0;p.grounded=true;p.wallDir=0;}
+if(p.vy>=0&&oldY+p.h<=wall.top+6&&p.y+p.h>=wall.top){p.y=wall.top-p.h;p.vy=0;p.grounded=true;p.wallDir=0;p.wallGrace=0;}
 else if(p.vy<0&&oldY>=wall.bottom-5&&p.y<wall.bottom&&p.y+p.h>wall.top){p.y=wall.bottom;p.vy=0;}
 }
 }
@@ -145,8 +153,8 @@ status.textContent='JEMBATAN RUNTUH! TERUS LARI!';
 }
 }
 if(p.y+p.h>=ground){p.y=ground-p.h;p.vy=0;p.grounded=true}
-if(p.grounded&&p.x<3300)p.wallJumps=0;
-if(priorWall&&!p.wallDir&&p.wallLock===0&&p.vy>90)status.textContent='ARAH OPPOSIT + JUMP';
+if(p.grounded){p.wallDir=0;p.wallGrace=0;if(p.x<3300)p.wallJumps=0;}
+if(p.wallDir&&p.wallLock===0&&!p.grounded&&p.vy>0)status.textContent='WALL SLIDE · OPPOSIT + JUMP';
 }
 if(p.grab){p.x=p.face===1?p.grab.x-p.w:p.x}
 for(const h of hazards)if(rectHit(p,h)){fail();return}
