@@ -5,35 +5,45 @@
 </style></head><body>
 <canvas id="game"></canvas><div class="hud"><div class="badge" id="status">STICKMAN PARKOUR</div><div class="badge" id="progress">0 m</div></div>
 <div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><button class="btn jump" data-key="jump">JUMP</button></div>
-<div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap bibir atas tembok, lalu tahan arah menuju tembok + JUMP bersamaan dalam <b>0,7 detik</b> untuk memanjat dan berdiri di atasnya. Hindari rintangan bergerak dan spike di bawah platform melayang! Di akhir, seberangi jembatan plank yang runtuh dari kiri ke kanan.</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
+<div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap bibir atas tembok, lalu tahan arah menuju tembok + JUMP bersamaan dalam <b>0,7 detik</b> untuk memanjat dan berdiri di atasnya. Hindari rintangan bergerak dan spike di bawah platform melayang! Sebelum platform melayang, lakukan lima wall-jump bergantian dengan arah menjauhi dinding + JUMP. Di akhir, seberangi jembatan plank yang runtuh dari kiri ke kanan.</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
 <script>
 (()=>{
 const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.getElementById('overlay'),status=document.getElementById('status'),progress=document.getElementById('progress');
-let W,H,scale,ground,camera=0,active=false,won=false,last=0,now=0;
+let W,H,scale,ground,camera=0,cameraY=0,active=false,won=false,last=0,now=0;
 const keys={left:false,right:false,jump:false};
-const world=4650,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
-let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint;
+const world=5370,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
+let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers;
 function resize(){W=innerWidth;H=innerHeight;c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ground=H-115}
 addEventListener('resize',resize);resize();
 function reset(){
 keys.left=keys.right=keys.jump=false;
-p={x:60,y:ground-54,w:23,h:54,vx:0,vy:0,grounded:true,grab:null,climb:null,hold:0,face:1,runPhase:0};
+p={x:60,y:ground-54,w:23,h:54,vx:0,vy:0,grounded:true,grab:null,climb:null,hold:0,face:1,runPhase:0,wallDir:0,wallJumps:0,wallLock:0};
 blocks=[
 {x:360,w:105,h:58},{x:630,w:110,h:110},{x:940,w:100,h:142},
 {x:1250,w:130,h:90},{x:1600,w:105,h:155},{x:1920,w:145,h:85},
 {x:2290,w:110,h:130},{x:2640,w:135,h:155},{x:3030,w:125,h:110}];
+// Five consecutive opposite-direction wall jumps across a tall vertical shaft.
+// The left wall is raised at its bottom so the player can walk into the shaft.
+towers=[{x:3300,w:90,top:ground-890,bottom:ground-125},
+{x:3560,w:90,top:ground-790,bottom:ground}];
 // Late-game suspended platforms. They are one-way: landing works from above.
-platforms=[{x:3280,w:130,y:ground-85},{x:3435,w:130,y:ground-125},
+platforms=[{x:4000,w:130,y:ground-85},{x:4155,w:130,y:ground-125},
 // Final obstacle: launch platform and finish-side landing platform.
-{x:3690,w:120,y:ground-85},{x:4310,w:130,y:ground-85}];
+{x:4410,w:120,y:ground-85},{x:5030,w:130,y:ground-85}];
 // Individual planks form the bridge from the first final platform to the second.
-bridgePlanks=Array.from({length:20},(_,i)=>({x:3810+i*25,w:23,y:ground-85,triggerAt:null}));
-spikes=[{x:3250,w:350,y:ground-27,h:27},{x:3790,w:530,y:ground-27,h:27}];
+bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-85,triggerAt:null}));
+spikes=[{x:3970,w:350,y:ground-27,h:27},{x:4510,w:530,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
-checkpoint=60;camera=0;won=false;now=0;status.textContent='LARI & LOMPAT';
+checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
 function jump(){
 if(!active||p.climb)return;
+// Wall jump only when pushing away from the wall + JUMP.
+const away=(keys.right?1:0)-(keys.left?1:0);
+if(!p.grounded&&p.wallDir&&away===-p.wallDir&&p.wallJumps<5){
+p.vy=-650;p.wallLock=.16;p.wallDir=0;p.wallJumps++;p.face=away;
+status.textContent='WALL JUMP '+p.wallJumps+'/5';return;
+}
 if(p.grab){
 // Current ledge-grab collision only supports the left face of a wall.
 // Therefore RIGHT is the only valid direction toward that wall.
@@ -54,12 +64,13 @@ if(!down||wasDown)return;
 if(k==='jump'){jump();return}
 // Multitouch order is independent: RIGHT then JUMP or JUMP then RIGHT.
 if(k==='right'&&keys.jump&&p.grab)jump();
+if((k==='right'||k==='left')&&keys.jump&&p.wallDir&&((k==='right'?1:-1)===-p.wallDir))jump();
 }
 document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);input(k,true)});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,e=>{e.preventDefault();input(k,false)})});
 addEventListener('keydown',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();if(!e.repeat)input(k,true)}});
 addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();input(k,false)}});
 document.getElementById('start').onclick=()=>{reset();active=true;overlay.classList.add('hidden');last=performance.now()};
-function fail(){for(const plank of bridgePlanks)plank.triggerAt=null;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;status.textContent='JATUH! COBA LAGI';}
+function fail(){for(const plank of bridgePlanks)plank.triggerAt=null;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function tick(dt){
 now+=dt;
@@ -83,11 +94,30 @@ if(p.hold<=0){p.grab=null;p.vy=65;status.textContent='PEGANGAN LEPAS!'}
 else status.textContent='GRAB '+p.hold.toFixed(2)+'s · JUMP!';
 }else{
 const oldX=p.x,oldY=p.y;
+const priorWall=p.wallDir;p.wallDir=0;
+p.wallLock=Math.max(0,p.wallLock-dt);
 p.vx=((keys.right?1:0)-(keys.left?1:0))*SPEED;
 if(p.vx)p.face=Math.sign(p.vx);
 if(p.grounded&&p.vx)p.runPhase+=Math.abs(p.vx)*dt*.060;
 p.x=Math.max(0,Math.min(world-p.w,p.x+p.vx*dt));
+// Walls are solid on both faces, with one-way landing on their tops.
+for(const wall of towers){
+const sideOverlap=p.y+p.h>wall.top&&p.y<wall.bottom;
+if(sideOverlap&&p.x+p.w>wall.x&&p.x<wall.x+wall.w){
+if(oldX+p.w<=wall.x+5){p.x=wall.x-p.w;p.wallDir=1;}
+else if(oldX>=wall.x+wall.w-5){p.x=wall.x+wall.w;p.wallDir=-1;}
+}
+// Contact remains available while the player is pressed flush against a wall.
+if(sideOverlap&&Math.abs(p.x+p.w-wall.x)<2&&keys.right)p.wallDir=1;
+if(sideOverlap&&Math.abs(p.x-(wall.x+wall.w))<2&&keys.left)p.wallDir=-1;
+}
 p.vy+=GRAV*dt;p.y+=p.vy*dt;p.grounded=false;
+for(const wall of towers){
+if(p.x+p.w>wall.x&&p.x<wall.x+wall.w){
+if(p.vy>=0&&oldY+p.h<=wall.top+6&&p.y+p.h>=wall.top){p.y=wall.top-p.h;p.vy=0;p.grounded=true;p.wallDir=0;}
+else if(p.vy<0&&oldY>=wall.bottom-5&&p.y<wall.bottom&&p.y+p.h>wall.top){p.y=wall.bottom;p.vy=0;}
+}
+}
 for(const b of blocks){
 const top=ground-b.h;
 if(p.x+p.w>b.x&&p.x<b.x+b.w){
@@ -115,6 +145,8 @@ status.textContent='JEMBATAN RUNTUH! TERUS LARI!';
 }
 }
 if(p.y+p.h>=ground){p.y=ground-p.h;p.vy=0;p.grounded=true}
+if(p.grounded&&p.x<3300)p.wallJumps=0;
+if(priorWall&&!p.wallDir&&p.wallLock===0&&p.vy>90)status.textContent='ARAH OPPOSIT + JUMP';
 }
 if(p.grab){p.x=p.face===1?p.grab.x-p.w:p.x}
 for(const h of hazards)if(rectHit(p,h)){fail();return}
@@ -122,23 +154,31 @@ for(const spike of spikes)if(rectHit(p,spike)){fail();return}
 if(p.y>H+150)fail();
 if(p.x>world-135){active=false;won=true;document.getElementById('title').textContent='FINISH! 🏁';document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati.';document.getElementById('start').textContent='MAIN LAGI';overlay.classList.remove('hidden')}
 // The spike course uses a safe respawn spot just before the hazard.
-if(p.x>3670)checkpoint=3640;
-else if(p.x>3210)checkpoint=3180;
+if(p.x>4390)checkpoint=4360;
+else if(p.x>3950)checkpoint=3900;
+else if(p.x>3250)checkpoint=3220;
 else if(p.x>checkpoint+500){
 const candidate=Math.min(p.x-180,world-300);
 if(!blocks.some(b=>candidate+p.w>b.x&&candidate<b.x+b.w)&&
 !spikes.some(z=>candidate+p.w>z.x&&candidate<z.x+z.w))checkpoint=candidate;
 }
 camera+=(Math.max(0,Math.min(world-W,p.x-W*.32))-camera)*Math.min(1,dt*7);
+const desiredY=Math.max(0,H*.43-p.y);
+cameraY+=(desiredY-cameraY)*Math.min(1,dt*8);
 progress.textContent=Math.floor(p.x/10)+' m';
 }
 function draw(){
 ctx.clearRect(0,0,W,H);
 const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#14263d');sky.addColorStop(1,'#284b5a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
 ctx.fillStyle='#ffffff12';for(let i=0;i<35;i++){const x=((i*191-camera*.17)%(W+150)+(W+150))%(W+150);ctx.fillRect(x,i*53%Math.max(1,H-120),2,2)}
-ctx.save();ctx.translate(-camera,0);
+ctx.save();ctx.translate(-camera,cameraY);
 ctx.fillStyle='#345969';ctx.fillRect(0,ground,world, H-ground);
 ctx.fillStyle='#73cfac';ctx.fillRect(0,ground,world,7);
+for(const wall of towers){
+ctx.fillStyle='#3b5e78';ctx.fillRect(wall.x,wall.top,wall.w,wall.bottom-wall.top);
+ctx.fillStyle='#86cdd0';ctx.fillRect(wall.x,wall.top,wall.w,9);
+ctx.fillStyle='#27455c';for(let yy=wall.top+25;yy<wall.bottom;yy+=38)ctx.fillRect(wall.x+12,yy,wall.w-24,6);
+}
 for(const b of blocks){const y=ground-b.h;ctx.fillStyle='#3f6581';ctx.fillRect(b.x,y,b.w,b.h);ctx.fillStyle='#91d6cf';ctx.fillRect(b.x,y,b.w,9);ctx.fillStyle='#233f58';for(let a=b.x+14;a<b.x+b.w-5;a+=30)ctx.fillRect(a,y+23,14,5)}
 // Draw suspended platforms and the finish bridge.
 for(const platform of platforms){
