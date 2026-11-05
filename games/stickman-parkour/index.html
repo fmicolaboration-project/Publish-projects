@@ -5,14 +5,14 @@
 </style></head><body>
 <canvas id="game"></canvas><div class="hud"><div class="badge" id="status">STICKMAN PARKOUR</div><div class="badge" id="progress">0 m</div></div>
 <div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><button class="btn jump" data-key="jump">JUMP</button></div>
-<div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap bibir atas tembok, lalu tahan arah menuju tembok + JUMP bersamaan dalam <b>0,7 detik</b> untuk memanjat dan berdiri di atasnya. Hindari rintangan bergerak!</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
+<div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap bibir atas tembok, lalu tahan arah menuju tembok + JUMP bersamaan dalam <b>0,7 detik</b> untuk memanjat dan berdiri di atasnya. Hindari rintangan bergerak dan spike di bawah platform melayang!</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
 <script>
 (()=>{
 const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.getElementById('overlay'),status=document.getElementById('status'),progress=document.getElementById('progress');
 let W,H,scale,ground,camera=0,active=false,won=false,last=0,now=0;
 const keys={left:false,right:false,jump:false};
-const world=3600,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
-let p,blocks,hazards,checkpoint;
+const world=4050,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
+let p,blocks,platforms,spikes,hazards,checkpoint;
 function resize(){W=innerWidth;H=innerHeight;c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ground=H-115}
 addEventListener('resize',resize);resize();
 function reset(){
@@ -22,6 +22,9 @@ blocks=[
 {x:360,w:105,h:58},{x:630,w:110,h:110},{x:940,w:100,h:142},
 {x:1250,w:130,h:90},{x:1600,w:105,h:155},{x:1920,w:145,h:85},
 {x:2290,w:110,h:130},{x:2640,w:135,h:155},{x:3030,w:125,h:110}];
+// Late-game suspended platforms. They are one-way: landing works from above.
+platforms=[{x:3280,w:130,y:ground-85},{x:3435,w:130,y:ground-125}];
+spikes=[{x:3250,w:350,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
 checkpoint=60;camera=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
@@ -91,13 +94,26 @@ if(p.vy<120&&Math.abs(handY-top)<34){p.grab=b;p.hold=HOLD;p.y=top-12;p.vy=0;stat
 }
 }
 }
+// Land on a floating platform while descending through its top surface.
+for(const platform of platforms){
+if(p.vy>=0&&oldY+p.h<=platform.y+6&&p.y+p.h>=platform.y&&p.x+p.w>platform.x&&p.x<platform.x+platform.w){
+p.y=platform.y-p.h;p.vy=0;p.grounded=true;
+}
+}
 if(p.y+p.h>=ground){p.y=ground-p.h;p.vy=0;p.grounded=true}
 }
 if(p.grab){p.x=p.face===1?p.grab.x-p.w:p.x}
-for(const h of hazards)if(rectHit(p,h)){fail();break}
+for(const h of hazards)if(rectHit(p,h)){fail();return}
+for(const spike of spikes)if(rectHit(p,spike)){fail();return}
 if(p.y>H+150)fail();
 if(p.x>world-135){active=false;won=true;document.getElementById('title').textContent='FINISH! 🏁';document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati.';document.getElementById('start').textContent='MAIN LAGI';overlay.classList.remove('hidden')}
-if(p.x>checkpoint+500)checkpoint=Math.min(p.x-180,world-300);
+// The spike course uses a safe respawn spot just before the hazard.
+if(p.x>3210)checkpoint=3180;
+else if(p.x>checkpoint+500){
+const candidate=Math.min(p.x-180,world-300);
+if(!blocks.some(b=>candidate+p.w>b.x&&candidate<b.x+b.w)&&
+!spikes.some(z=>candidate+p.w>z.x&&candidate<z.x+z.w))checkpoint=candidate;
+}
 camera+=(Math.max(0,Math.min(world-W,p.x-W*.32))-camera)*Math.min(1,dt*7);
 progress.textContent=Math.floor(p.x/10)+' m';
 }
@@ -109,6 +125,20 @@ ctx.save();ctx.translate(-camera,0);
 ctx.fillStyle='#345969';ctx.fillRect(0,ground,world, H-ground);
 ctx.fillStyle='#73cfac';ctx.fillRect(0,ground,world,7);
 for(const b of blocks){const y=ground-b.h;ctx.fillStyle='#3f6581';ctx.fillRect(b.x,y,b.w,b.h);ctx.fillStyle='#91d6cf';ctx.fillRect(b.x,y,b.w,9);ctx.fillStyle='#233f58';for(let a=b.x+14;a<b.x+b.w-5;a+=30)ctx.fillRect(a,y+23,14,5)}
+// Draw the suspended platforms and the row of spikes underneath.
+for(const platform of platforms){
+ctx.fillStyle='#577899';ctx.fillRect(platform.x,platform.y,platform.w,16);
+ctx.fillStyle='#a4f5de';ctx.fillRect(platform.x,platform.y,platform.w,6);
+ctx.fillStyle='#2a425c';for(let px=platform.x+13;px<platform.x+platform.w-8;px+=25)ctx.fillRect(px,platform.y+10,12,4);
+}
+for(const spike of spikes){
+ctx.fillStyle='#f17b7b';
+const count=Math.ceil(spike.w/18),step=spike.w/count;
+for(let i=0;i<count;i++){
+const sx=spike.x+i*step;
+ctx.beginPath();ctx.moveTo(sx,ground);ctx.lineTo(sx+step/2,spike.y);ctx.lineTo(sx+step,ground);ctx.closePath();ctx.fill();
+}
+}
 for(const h of hazards){ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
 ctx.fillStyle='#f4d477';ctx.fillRect(world-100,ground-210,7,210);ctx.fillStyle='#67e2ba';ctx.fillRect(world-93,ground-210,80,45);
 const x=p.x+p.w/2,y=p.y;
