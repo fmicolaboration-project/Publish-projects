@@ -12,7 +12,7 @@ const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.
 let W,H,scale,ground,camera=0,cameraY=0,active=false,won=false,last=0,now=0;
 const keys={left:false,right:false,jump:false};
 const world=5370,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
-let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals;
+let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss;
 function resize(){W=innerWidth;H=innerHeight;c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ground=H-115}
 addEventListener('resize',resize);resize();
 function reset(){
@@ -38,6 +38,7 @@ platforms=[{x:4000,w:130,y:ground-85},{x:4155,w:130,y:ground-125},
 bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-85,triggerAt:null}));
 spikes=[{x:3970,w:350,y:ground-27,h:27},{x:4510,w:530,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
+boss={x:world-350,w:195,h:175,shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0};
 checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
 function jump(){
@@ -74,10 +75,27 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addE
 addEventListener('keydown',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();if(!e.repeat)input(k,true)}});
 addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();input(k,false)}});
 document.getElementById('start').onclick=()=>{reset();active=true;overlay.classList.add('hidden');last=performance.now()};
-function fail(){for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
+function fail(){if(boss){boss.fireballs=[];boss.cooldown=1.2;}for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function tick(dt){
 now+=dt;
+// The stationary boss attacks when approached, then collapses for exactly seven seconds.
+if(p.x>boss.x-650&&!won){
+ if(boss.down){
+  if(now>=boss.downUntil){boss.down=false;boss.shots=0;boss.limit=7+Math.floor(Math.random()*4);boss.cooldown=1.1;}
+ }else{
+  boss.cooldown-=dt;
+  boss.mouth=Math.max(0,boss.mouth-dt);
+  if(boss.cooldown<=0){
+   boss.fireballs.push({x:boss.x+26,y:ground-22,r:13,vx:-(boss.shots%2===0?390:255)});
+   boss.shots++;boss.mouth=.32;boss.cooldown=1.05;
+   if(boss.shots>=boss.limit){boss.down=true;boss.downUntil=now+7;boss.fireballs=[];status.textContent='MONSTER ROBOH! 7 DETIK!';}
+  }
+ }
+}
+for(const ball of boss.fireballs)ball.x+=ball.vx*dt;
+boss.fireballs=boss.fireballs.filter(ball=>ball.x>boss.x-1100);
+if(boss.fireballs.some(ball=>rectHit(p,{x:ball.x-ball.r,y:ball.y-ball.r,w:ball.r*2,h:ball.r*2}))){fail();return;}
 // Planks activate left-to-right once the player reaches the bridge.
 // Each breaks 0.4 seconds after its own activation.
 for(const h of hazards)h.y=h.base+Math.sin(now*h.speed+h.phase)*h.amp;
@@ -171,6 +189,13 @@ const feet=p.y+p.h;p.w=23;p.h=54;p.y=feet-p.h;
 p.portalStage=2;p.wallDir=0;p.wallGrace=0;
 status.textContent='UKURAN NORMAL!';
 }
+// A fallen monster is a temporary platform. An upright monster blocks passage.
+const bossTop=ground-(boss.down?55:boss.h);
+if(p.x+p.w>boss.x&&p.x<boss.x+boss.w){
+ if(boss.down){
+  if(p.vy>=0&&p.y+p.h<=bossTop+Math.max(12,p.vy*dt+7)&&p.y+p.h>=bossTop){p.y=bossTop-p.h;p.vy=0;p.grounded=true;}
+ }else if(p.y+p.h>bossTop){p.x=Math.min(p.x,boss.x-p.w);}
+}
 for(const h of hazards)if(rectHit(p,h)){fail();return}
 for(const spike of spikes)if(rectHit(p,spike)){fail();return}
 if(p.y>H+150)fail();
@@ -245,6 +270,30 @@ ctx.beginPath();ctx.moveTo(sx,ground);ctx.lineTo(sx+step/2,spike.y);ctx.lineTo(s
 }
 }
 for(const h of hazards){ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
+// Boss: dinosaur body, Godzilla dorsal plates, jaws, eyes and animated collapse.
+ctx.save();
+ctx.translate(boss.x+boss.w/2,ground);
+if(boss.down){ctx.rotate(-Math.PI/2);ctx.scale(.65,.85);ctx.translate(-boss.w/2,-boss.h*.36);}
+else ctx.translate(-boss.w/2,-boss.h);
+ctx.fillStyle='#244f43';
+ctx.beginPath();ctx.moveTo(42,145);ctx.lineTo(-55,159);ctx.lineTo(22,119);ctx.lineTo(44,76);ctx.lineTo(110,51);ctx.lineTo(155,82);ctx.lineTo(164,119);ctx.lineTo(119,153);ctx.closePath();ctx.fill();
+ctx.fillStyle='#438b6b';ctx.beginPath();ctx.ellipse(94,108,75,59,0,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#77cba0';
+for(let i=0;i<5;i++){let xx=42+i*23;ctx.beginPath();ctx.moveTo(xx,62-i*5);ctx.lineTo(xx+12,23-i*3);ctx.lineTo(xx+23,65-i*2);ctx.fill();}
+ctx.fillStyle='#316c58';ctx.fillRect(76,144,24,31);ctx.fillRect(133,140,24,35);
+ctx.fillStyle='#438b6b';ctx.beginPath();ctx.ellipse(158,58,49,38,-.12,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#172e2d';ctx.fillRect(120,81,78,boss.mouth>0?23:10);
+ctx.fillStyle='#ffdfb1';for(let i=0;i<6;i++){ctx.beginPath();ctx.moveTo(129+i*12,81);ctx.lineTo(135+i*12,92);ctx.lineTo(141+i*12,81);ctx.fill();}
+ctx.fillStyle='#ffba35';ctx.beginPath();ctx.arc(172,48,7,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#16211f';ctx.beginPath();ctx.arc(174,48,3,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#438b6b';ctx.fillRect(135,108,34,13);
+ctx.restore();
+for(const ball of boss.fireballs){
+ const glow=ctx.createRadialGradient(ball.x,ball.y,2,ball.x,ball.y,22);
+ glow.addColorStop(0,'#fff7a1');glow.addColorStop(.45,'#ff9d23');glow.addColorStop(1,'#e7431200');
+ ctx.fillStyle=glow;ctx.beginPath();ctx.arc(ball.x,ball.y,22,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#ff5b19';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+}
 ctx.fillStyle='#f4d477';ctx.fillRect(world-100,ground-210,7,210);ctx.fillStyle='#67e2ba';ctx.fillRect(world-93,ground-210,80,45);
 const x=p.x+p.w/2,y=p.y,face=p.face;
 // Stick-figure art remains proportional to the actual collision box.
