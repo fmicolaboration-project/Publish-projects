@@ -11,7 +11,7 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.getElementById('overlay'),status=document.getElementById('status'),progress=document.getElementById('progress');
 let W,H,scale,ground,camera=0,cameraY=0,active=false,won=false,last=0,now=0;
 const keys={left:false,right:false,jump:false,duck:false};
-const world=7600,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
+const world=8300,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
 let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss,chase;
 const bossSprite=new Image();bossSprite.src='monster.svg?v=d3ead88';
 const bossFallenSprite=new Image();bossFallenSprite.src='monster-fallen.svg?v=dbf3779';
@@ -40,8 +40,8 @@ platforms=[{x:4000,w:130,y:ground-85},{x:4155,w:130,y:ground-125},
 bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-85,triggerAt:null}));
 spikes=[{x:3970,w:350,y:ground-27,h:27},{x:4510,w:530,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
-boss={x:5710,w:Math.max(140,Math.min(W*.72,420)),h:Math.max(90,Math.min(H*.36,W*.72/1.8)),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0,beam:null,headTilt:0};
-chase={active:false,done:false,x:0,r:110,spawn:0,stones:[],next:0};checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
+boss={x:5710,w:Math.max(140,Math.min(W*.72,420)),h:Math.max(90,Math.min(H*.36,W*.72/1.8)),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,defeated:false,fireballs:[],mouth:0,beam:null,headTilt:0};
+chase={active:false,done:false,started:false,x:0,r:110,spawn:0,stones:[],next:0};checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
 function jump(){
 if(!active||p.climb||keys.duck)return;
@@ -78,7 +78,7 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addE
 addEventListener('keydown',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();if(!e.repeat)input(k,true)}});
 addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();input(k,false)}});
 document.getElementById('start').onclick=()=>{resize();reset();active=true;overlay.classList.add('hidden');last=performance.now()};
-function fail(){if(chase){chase.active=false;chase.done=false;chase.stones=[];chase.r=110;}if(boss){boss.fireballs=[];boss.beam=null;boss.cooldown=1.2;}for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
+function fail(){if(chase){chase.active=false;chase.done=false;chase.started=false;chase.stones=[];chase.r=110;}if(boss){boss.fireballs=[];boss.beam=null;boss.cooldown=1.2;}for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function tick(dt){
 now+=dt;
@@ -90,7 +90,7 @@ if(inArena&&!won){
  if(boss.down){
   boss.headTilt+=(0-boss.headTilt)*Math.min(1,dt*5);
   boss.beam=null;
-  if(now>=boss.downUntil){boss.down=false;boss.shots=0;boss.limit=7+Math.floor(Math.random()*4);boss.cooldown=1.2;}
+  if(now>=boss.downUntil&&!boss.defeated){boss.down=false;boss.shots=0;boss.limit=7+Math.floor(Math.random()*4);boss.cooldown=1.2;}
  }else{
   boss.cooldown-=dt;
   boss.mouth=Math.max(0,boss.mouth-dt);
@@ -112,22 +112,22 @@ if(inArena&&!won){
    if(!ducking&&p.x+p.w>boss.x-900&&p.x<boss.x+boss.w&&p.y<beamY+8&&p.y+p.h>beamY-8){fail();return;}
   }
   if(boss.shots>=boss.limit&&!boss.beam){
-   boss.down=true;boss.downUntil=now+7;
+   boss.down=true;boss.defeated=true;boss.downUntil=now+7;
    status.textContent='MONSTER ROBOH! 7 DETIK!';
   }
  }
 }
 // The final chase begins after the player passes the fallen boss.
-if(!chase.done&&!chase.active&&p.x>boss.x+boss.w+45&&boss.down){
- chase.active=true;chase.x=p.x-210;chase.r=110;chase.spawn=now;
+if(!chase.started&&boss.defeated&&p.x>boss.x+boss.w+45){
+ chase.started=true;chase.active=true;chase.x=p.x-115;chase.r=78;chase.spawn=now;
  chase.next=now+.85;chase.stones=[];
  status.textContent='BATU RAKSASA MENGEJAR!';
 }
 if(chase.active){
  const elapsed=now-chase.spawn;
- chase.r=Math.max(25,110-elapsed*5.5);
+ chase.r=Math.max(25,78-elapsed*2.2);
  // The rolling boulder is slightly slower than a running player.
- chase.x+=Math.min(222,Math.max(0,p.x-chase.x-110)*1.9)*dt;
+ chase.x+=Math.min(230,Math.max(0,p.x-chase.x-95)*2.2)*dt;
  if(now>=chase.next&&chase.r>27&&p.x<world-260){
   const r=11+Math.random()*8;
   const launchX=chase.x+chase.r*.65;
@@ -149,7 +149,7 @@ if(chase.active){
  for(const stone of chase.stones){
   if(stone.landed&&rectHit(p,{x:stone.x-stone.r*.85,y:ground-stone.r*1.7,w:stone.r*1.7,h:stone.r*1.7})){fail();return;}
  }
- if(chase.r<=25&&chase.stones.every(st=>st.landed)&&elapsed>17){
+ if(chase.r<=25&&chase.stones.every(st=>st.landed)&&elapsed>23){
   chase.active=false;chase.done=true;status.textContent='BATU HABIS! MENUJU FINISH!';
  }
 }
@@ -256,9 +256,9 @@ if(p.x+p.w>boss.x&&p.x<boss.x+boss.w){
 for(const h of hazards)if(rectHit(p,h)){fail();return}
 for(const spike of spikes)if(rectHit(p,spike)){fail();return}
 if(p.y>H+150)fail();
-if(p.x>world-135){active=false;won=true;document.getElementById('title').textContent='FINISH! 🏁';document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati.';document.getElementById('start').textContent='MAIN LAGI';overlay.classList.remove('hidden')}
+if(p.x>world-135&&chase.started){active=false;won=true;document.getElementById('title').textContent='FINISH! 🏁';document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati.';document.getElementById('start').textContent='MAIN LAGI';overlay.classList.remove('hidden')}
 // The spike course uses a safe respawn spot just before the hazard.
-if(p.x>5300)checkpoint=5260;else if(p.x>4390)checkpoint=4360;
+if(chase.started)checkpoint=Math.max(checkpoint,boss.x+boss.w+75);else if(p.x>5300)checkpoint=5260;else if(p.x>4390)checkpoint=4360;
 else if(p.x>3950)checkpoint=3900;
 else if(p.x>3250)checkpoint=3220;
 else if(p.x>checkpoint+500){
@@ -412,9 +412,9 @@ if(chase.active){
   ctx.beginPath();ctx.arc(st.x,st.y,st.r,0,Math.PI*2);ctx.fill();ctx.stroke();
  }
 }
-ctx.fillStyle='#f4d477';ctx.fillRect(world-100,ground-210,7,210);ctx.fillStyle='#67e2ba';ctx.fillRect(world-93,ground-210,80,45);
+if(chase.started){ctx.fillStyle='#f4d477';ctx.fillRect(world-100,ground-210,7,210);ctx.fillStyle='#67e2ba';ctx.fillRect(world-93,ground-210,80,45);}
 // Boss health display and attack warning.
-if(p.x>boss.x-750){
+if(p.x>boss.x-750&&!chase.started){
  ctx.save();ctx.setTransform(c.width/W,0,0,c.height/H,0,0);
  const bx=W*.27,bw=W*.55;
  ctx.fillStyle='#0b0d18';ctx.fillRect(bx,16,bw,21);
