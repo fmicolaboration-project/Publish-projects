@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Stickman Parkour</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#101827;color:#eaf5ff;font:15px system-ui,sans-serif;overflow:hidden}canvas{display:block;width:100%;height:100%;touch-action:none}body{width:100vw;height:100dvh;position:relative}@media(orientation:portrait){body{width:100dvh;height:100vw;position:absolute;top:0;left:0;transform-origin:top left;transform:rotate(90deg) translateY(-100%)}}.hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none;text-shadow:0 2px 3px #000}.badge{background:#15243bd9;padding:8px 12px;border:1px solid #54728b;border-radius:12px}.controls{position:fixed;bottom:18px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none}.group{display:flex;gap:12px}.btn{pointer-events:auto;touch-action:none;border:2px solid #8ecaff;background:#1a3958d9;color:white;border-radius:18px;width:75px;height:72px;font-size:26px;font-weight:bold;user-select:none;-webkit-user-select:none}.jump{width:105px;background:#17675e;border-color:#71f4c9;font-size:17px}.overlay{position:fixed;inset:0;display:grid;place-items:center;background:#071321a8}.card{max-width:360px;margin:20px;padding:24px;text-align:center;border:1px solid #80b6d1;background:#13243a;border-radius:20px}.card h1{margin-top:0}.card button{background:#64d9bb;color:#102c2b;border:0;border-radius:12px;padding:14px 24px;font-size:18px;font-weight:800}.hidden{display:none}small{color:#c1d8e9}
+*{box-sizing:border-box}body{margin:0;background:#101827;color:#eaf5ff;font:15px system-ui,sans-serif;overflow:hidden}html,body{width:100%;height:100%;height:100dvh}canvas{display:block;width:100vw;height:100dvh;touch-action:none}body{position:relative}.hud{font-size:clamp(11px,3vw,15px)}@media(orientation:portrait){.hud{top:8px;left:8px;right:8px;gap:5px}.badge{padding:6px 8px;border-radius:8px}.controls{bottom:max(12px,env(safe-area-inset-bottom));left:8px;right:8px}.group{gap:7px}.btn{width:clamp(48px,14vw,65px);height:62px;font-size:23px;border-radius:13px}.jump{width:clamp(72px,23vw,96px);font-size:15px}.card{margin:12px;padding:16px;max-height:85dvh;overflow-y:auto}.card h1{font-size:21px}.card p{font-size:13px}}.hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none;text-shadow:0 2px 3px #000}.badge{background:#15243bd9;padding:8px 12px;border:1px solid #54728b;border-radius:12px}.controls{position:fixed;bottom:18px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none}.group{display:flex;gap:12px}.btn{pointer-events:auto;touch-action:none;border:2px solid #8ecaff;background:#1a3958d9;color:white;border-radius:18px;width:75px;height:72px;font-size:26px;font-weight:bold;user-select:none;-webkit-user-select:none}.jump{width:105px;background:#17675e;border-color:#71f4c9;font-size:17px}.overlay{position:fixed;inset:0;display:grid;place-items:center;background:#071321a8}.card{max-width:360px;margin:20px;padding:24px;text-align:center;border:1px solid #80b6d1;background:#13243a;border-radius:20px}.card h1{margin-top:0}.card button{background:#64d9bb;color:#102c2b;border:0;border-radius:12px;padding:14px 24px;font-size:18px;font-weight:800}.hidden{display:none}small{color:#c1d8e9}
 </style></head><body>
 <canvas id="game"></canvas><div class="hud"><div class="badge" id="status">STICKMAN PARKOUR</div><div class="badge" id="progress">0 m</div></div>
 <div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><div class="group"><button class="btn" id="duck" data-key="duck" style="display:none;font-size:17px;background:#574180">DUCK</button><button class="btn jump" data-key="jump">JUMP</button></div></div>
@@ -14,7 +14,7 @@ const keys={left:false,right:false,jump:false,duck:false};
 const world=6500,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
 let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss;
 const bossSprite=new Image();bossSprite.src='monster.svg?v=d3ead88';
-function resize(){const portrait=innerHeight>innerWidth;W=portrait?innerHeight:innerWidth;H=portrait?innerWidth:innerHeight;c.width=Math.round(W*devicePixelRatio);c.height=Math.round(H*devicePixelRatio);ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ground=H-115}
+function resize(){W=innerWidth;H=innerHeight;const dpr=Math.min(devicePixelRatio||1,2);c.width=Math.round(W*dpr);c.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);ground=H-(H>W?105:115)}
 addEventListener('resize',resize);resize();
 function reset(){
 keys.left=keys.right=keys.jump=keys.duck=false;document.getElementById('duck').style.display='none';
@@ -39,7 +39,7 @@ platforms=[{x:4000,w:130,y:ground-85},{x:4155,w:130,y:ground-125},
 bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-85,triggerAt:null}));
 spikes=[{x:3970,w:350,y:ground-27,h:27},{x:4510,w:530,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
-boss={x:world-790,w:Math.min(W-65,Math.max(140,ground-24)*1.8),h:Math.min(Math.max(140,ground-24),(W-65)/1.8),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0,beam:null,headTilt:0};
+boss={x:world-790,w:Math.max(140,Math.min(W*.72,420)),h:Math.max(90,Math.min(H*.36,W*.72/1.8)),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0,beam:null,headTilt:0};
 checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
 function jump(){
@@ -76,7 +76,7 @@ if((k==='right'||k==='left')&&keys.jump&&p.wallDir&&((k==='right'?1:-1)===-p.wal
 document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);input(k,true)});for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,e=>{e.preventDefault();input(k,false)})});
 addEventListener('keydown',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();if(!e.repeat)input(k,true)}});
 addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();input(k,false)}});
-document.getElementById('start').onclick=async()=>{try{if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape')}catch(e){}resize();reset();active=true;overlay.classList.add('hidden');last=performance.now()};
+document.getElementById('start').onclick=()=>{resize();reset();active=true;overlay.classList.add('hidden');last=performance.now()};
 function fail(){if(boss){boss.fireballs=[];boss.beam=null;boss.cooldown=1.2;}for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function tick(dt){
@@ -229,7 +229,7 @@ const candidate=Math.min(p.x-180,world-300);
 if(!blocks.some(b=>candidate+p.w>b.x&&candidate<b.x+b.w)&&
 !spikes.some(z=>candidate+p.w>z.x&&candidate<z.x+z.w))checkpoint=candidate;
 }
-camera+=(Math.max(0,Math.min(world-W,p.x-W*.32))-camera)*Math.min(1,dt*7);
+camera+=(Math.max(0,Math.min(world-W,p.x-W*(H>W?.28:.32)))-camera)*Math.min(1,dt*7);
 const bossView=0;
 const desiredY=Math.max(bossView,Math.max(0,H*.43-p.y));
 cameraY+=(desiredY-cameraY)*Math.min(1,dt*8);
@@ -357,7 +357,7 @@ if(boss.beam&&!boss.down){
 ctx.fillStyle='#f4d477';ctx.fillRect(world-100,ground-210,7,210);ctx.fillStyle='#67e2ba';ctx.fillRect(world-93,ground-210,80,45);
 // Boss health display and attack warning.
 if(p.x>boss.x-750){
- ctx.save();ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+ ctx.save();ctx.setTransform(c.width/W,0,0,c.height/H,0,0);
  const bx=W*.27,bw=W*.55;
  ctx.fillStyle='#0b0d18';ctx.fillRect(bx,16,bw,21);
  ctx.fillStyle='#f43d47';ctx.fillRect(bx+3,19,(bw-6)*Math.max(0,1-boss.shots/boss.limit),15);
