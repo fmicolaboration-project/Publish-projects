@@ -13,6 +13,7 @@ let W,H,scale,ground,camera=0,cameraY=0,active=false,won=false,last=0,now=0;
 const keys={left:false,right:false,jump:false};
 const world=6500,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
 let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss;
+const bossSprite=new Image();bossSprite.src='data:image/webp;base64,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';
 function resize(){W=innerWidth;H=innerHeight;c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ground=H-115}
 addEventListener('resize',resize);resize();
 function reset(){
@@ -270,45 +271,12 @@ ctx.beginPath();ctx.moveTo(sx,ground);ctx.lineTo(sx+step/2,spike.y);ctx.lineTo(s
 }
 }
 for(const h of hazards){ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
-// Reference-inspired friendly cartoon kaiju: charcoal gray, pale belly, purple spines.
+// Embedded transparent monster image based on the supplied reference.
 ctx.save();
-ctx.translate(boss.x,boss.down?ground-55:ground-boss.h);
-ctx.scale(boss.w/480,(boss.down?55:boss.h)/300);
-ctx.lineCap='round';ctx.lineJoin='round';
-const shape=(fill,draw)=>{ctx.fillStyle=fill;ctx.beginPath();draw();ctx.closePath();ctx.fill();};
-const ellipse=(fill,x,y,rx,ry,rot=0)=>{ctx.fillStyle=fill;ctx.beginPath();ctx.ellipse(x,y,rx,ry,rot,0,Math.PI*2);ctx.fill();};
-const dark='#484953',shade='#555663',belly='#a3a5ad',purple='#32144f';
-// The tail is on the RIGHT, fully inside the sprite boundary.
-shape(dark,()=>{ctx.moveTo(260,160);ctx.bezierCurveTo(330,232,376,221,414,185);ctx.bezierCurveTo(446,154,466,168,480,180);ctx.bezierCurveTo(454,151,430,147,400,167);ctx.bezierCurveTo(345,206,308,151,260,119);});
-// Purple dorsal plates: largest at shoulders, diminishing down the tail.
-for(let i=0;i<12;i++){
- const x=152+i*24,y=i<5?70+i*17:155+(i-5)*6;
- const r=i<5?32-i*2:Math.max(5,21-(i-5)*3);
- shape(purple,()=>{ctx.moveTo(x-r*.6,y+12);ctx.lineTo(x-r*.5,y-r*.55);ctx.lineTo(x+r*.15,y-r);ctx.lineTo(x+r*.5,y-r*.45);ctx.lineTo(x+r*.8,y+12);});
+if(bossSprite.complete&&bossSprite.naturalWidth){
+ const spriteH=boss.down?Math.min(75,boss.h*.4):boss.h;
+ ctx.drawImage(bossSprite,boss.x,ground-spriteH,boss.w,spriteH);
 }
-// Heavy lower body and rounded gray belly.
-shape(dark,()=>{ctx.moveTo(94,88);ctx.bezierCurveTo(118,57,178,61,219,110);ctx.bezierCurveTo(258,154,292,207,318,220);ctx.bezierCurveTo(267,252,199,226,157,224);ctx.bezierCurveTo(104,222,82,166,94,88);});
-shape(belly,()=>{ctx.moveTo(103,103);ctx.bezierCurveTo(114,134,139,153,165,178);ctx.bezierCurveTo(199,209,255,220,304,222);ctx.bezierCurveTo(245,241,175,213,137,192);ctx.bezierCurveTo(111,166,97,136,103,103);});
-// Rear leg then huge front thigh.
-shape('#30313b',()=>{ctx.moveTo(203,177);ctx.lineTo(240,184);ctx.lineTo(252,260);ctx.lineTo(211,274);ctx.lineTo(183,269);ctx.lineTo(214,252);});
-shape(shade,()=>{ctx.moveTo(137,150);ctx.bezierCurveTo(189,130,209,168,198,205);ctx.lineTo(174,257);ctx.bezierCurveTo(173,280,154,291,119,286);ctx.lineTo(94,280);ctx.lineTo(115,261);ctx.lineTo(113,212);ctx.closePath();});
-for(const x of [100,117,134,203,222,238])ellipse('#d6d1b4',x,x<180?280:270,11,7,-.2);
-// Curved upright neck and small rounded head facing LEFT.
-shape(dark,()=>{ctx.moveTo(127,136);ctx.bezierCurveTo(119,102,108,75,84,49);ctx.bezierCurveTo(65,24,46,22,34,32);ctx.lineTo(26,57);ctx.bezierCurveTo(47,74,59,104,73,143);});
-shape(belly,()=>{ctx.moveTo(56,75);ctx.bezierCurveTo(73,89,77,122,106,160);ctx.lineTo(126,168);ctx.bezierCurveTo(97,117,83,80,68,62);});
-ellipse(dark,42,43,43,31,-.16);
-shape(dark,()=>{ctx.moveTo(38,37);ctx.bezierCurveTo(17,32,4,39,2,51);ctx.bezierCurveTo(5,63,27,66,53,54);});
-const gape=boss.mouth>0?17:9;
-shape('#a73f73',()=>{ctx.moveTo(16,59);ctx.lineTo(71,52);ctx.lineTo(55,65+gape);ctx.lineTo(23,72+gape);});
-shape(shade,()=>{ctx.moveTo(23,70+gape);ctx.lineTo(62,58+gape);ctx.lineTo(56,71+gape);ctx.lineTo(27,81+gape);ctx.bezierCurveTo(16,84+gape,13,77+gape,23,70+gape);});
-ctx.fillStyle='#f7f1df';for(let i=0;i<5;i++){const x=18+i*9;ctx.beginPath();ctx.moveTo(x,58);ctx.lineTo(x+4,67);ctx.lineTo(x+8,56);ctx.fill();}
-ellipse('#fff2ba',40,39,8,6);ellipse('#22232a',37,39,3,4);
-ellipse('#252630',10,47,3,3);
-// Small arms with rounded claws (not horror-style).
-ctx.strokeStyle=shade;ctx.lineWidth=19;ctx.beginPath();ctx.moveTo(125,119);ctx.lineTo(119,155);ctx.lineTo(83,171);ctx.stroke();
-ctx.strokeStyle='#353642';ctx.lineWidth=5;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(81+i*6,170);ctx.lineTo(77+i*6,182);ctx.stroke();}
-// Cartoon scale marks on thigh.
-ctx.strokeStyle='#373843';ctx.lineWidth=4;for(let i=0;i<6;i++){const x=145+(i%3)*15,y=190+Math.floor(i/3)*21;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-4,y+8);ctx.lineTo(x+4,y+6);ctx.stroke();}
 ctx.restore();
 for(const ball of boss.fireballs){
  const glow=ctx.createRadialGradient(ball.x,ball.y,2,ball.x,ball.y,22);
