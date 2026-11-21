@@ -38,7 +38,7 @@ platforms=[{x:4000,w:130,y:ground-85},{x:4155,w:130,y:ground-125},
 bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-85,triggerAt:null}));
 spikes=[{x:3970,w:350,y:ground-27,h:27},{x:4510,w:530,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
-boss={x:world-350,w:195,h:175,shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0};
+boss={x:world-405,w:245,h:Math.min(ground-14,Math.max(190,H*.69)),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0};
 checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
 function jump(){
@@ -87,7 +87,7 @@ if(p.x>boss.x-650&&!won){
   boss.cooldown-=dt;
   boss.mouth=Math.max(0,boss.mouth-dt);
   if(boss.cooldown<=0){
-   boss.fireballs.push({x:boss.x+26,y:ground-22,r:13,vx:-(boss.shots%2===0?390:255)});
+   boss.fireballs.push({x:boss.x+19,y:ground-22,r:13,vx:-(boss.shots%2===0?390:255)});
    boss.shots++;boss.mouth=.32;boss.cooldown=1.05;
    if(boss.shots>=boss.limit){boss.down=true;boss.downUntil=now+7;boss.fireballs=[];status.textContent='MONSTER ROBOH! 7 DETIK!';}
   }
@@ -270,23 +270,52 @@ ctx.beginPath();ctx.moveTo(sx,ground);ctx.lineTo(sx+step/2,spike.y);ctx.lineTo(s
 }
 }
 for(const h of hazards){ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
-// Boss: dinosaur body, Godzilla dorsal plates, jaws, eyes and animated collapse.
+// Large left-facing T-Rex/Godzilla hybrid; all art is drawn inside the boss box.
 ctx.save();
-ctx.translate(boss.x+boss.w/2,ground);
-if(boss.down){ctx.rotate(-Math.PI/2);ctx.scale(.65,.85);ctx.translate(-boss.w/2,-boss.h*.36);}
-else ctx.translate(-boss.w/2,-boss.h);
-ctx.fillStyle='#244f43';
-ctx.beginPath();ctx.moveTo(42,145);ctx.lineTo(-55,159);ctx.lineTo(22,119);ctx.lineTo(44,76);ctx.lineTo(110,51);ctx.lineTo(155,82);ctx.lineTo(164,119);ctx.lineTo(119,153);ctx.closePath();ctx.fill();
-ctx.fillStyle='#438b6b';ctx.beginPath();ctx.ellipse(94,108,75,59,0,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#77cba0';
-for(let i=0;i<5;i++){let xx=42+i*23;ctx.beginPath();ctx.moveTo(xx,62-i*5);ctx.lineTo(xx+12,23-i*3);ctx.lineTo(xx+23,65-i*2);ctx.fill();}
-ctx.fillStyle='#316c58';ctx.fillRect(76,144,24,31);ctx.fillRect(133,140,24,35);
-ctx.fillStyle='#438b6b';ctx.beginPath();ctx.ellipse(158,58,49,38,-.12,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#172e2d';ctx.fillRect(120,81,78,boss.mouth>0?23:10);
-ctx.fillStyle='#ffdfb1';for(let i=0;i<6;i++){ctx.beginPath();ctx.moveTo(129+i*12,81);ctx.lineTo(135+i*12,92);ctx.lineTo(141+i*12,81);ctx.fill();}
-ctx.fillStyle='#ffba35';ctx.beginPath();ctx.arc(172,48,7,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#16211f';ctx.beginPath();ctx.arc(174,48,3,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#438b6b';ctx.fillRect(135,108,34,13);
+ctx.translate(boss.x,boss.down?ground-55:ground-boss.h);
+ctx.scale(boss.w/240,(boss.down?55:boss.h)/260);
+ctx.lineJoin='round';ctx.lineCap='round';
+// Long muscular tail points right, away from the approaching player.
+ctx.fillStyle='#244b41';ctx.strokeStyle='#122b29';ctx.lineWidth=5;
+ctx.beginPath();ctx.moveTo(135,130);ctx.bezierCurveTo(197,119,217,172,239,190);
+ctx.bezierCurveTo(210,187,184,181,139,205);ctx.closePath();ctx.fill();ctx.stroke();
+// Godzilla-like jagged dorsal ridge from neck down to tail.
+ctx.fillStyle='#86bcb2';ctx.strokeStyle='#284f4b';ctx.lineWidth=3;
+for(let i=0;i<8;i++){const px=91+i*17,py=78+i*10;ctx.beginPath();ctx.moveTo(px-13,py+22);ctx.lineTo(px+1,py-24+i*2);ctx.lineTo(px+15,py+24);ctx.closePath();ctx.fill();ctx.stroke();}
+// Heavy dinosaur torso.
+ctx.fillStyle='#326958';ctx.strokeStyle='#142f2a';ctx.lineWidth=6;
+ctx.beginPath();ctx.moveTo(67,91);ctx.bezierCurveTo(109,55,166,88,177,137);
+ctx.bezierCurveTo(196,191,154,222,111,224);
+ctx.bezierCurveTo(75,225,54,176,67,91);ctx.closePath();ctx.fill();ctx.stroke();
+// Armored belly.
+ctx.fillStyle='#518e73';ctx.beginPath();ctx.ellipse(109,166,45,55,-.22,0,Math.PI*2);ctx.fill();
+// Powerful legs, thick toes and claws.
+ctx.fillStyle='#245347';ctx.strokeStyle='#142f2a';ctx.lineWidth=6;
+for(const lx of [101,151]){
+ ctx.beginPath();ctx.moveTo(lx-17,189);ctx.lineTo(lx+12,189);ctx.lineTo(lx+7,244);
+ ctx.lineTo(lx-30,249);ctx.lineTo(lx-35,239);ctx.lineTo(lx-8,231);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle='#d8e1bd';for(let t=0;t<3;t++){ctx.beginPath();ctx.moveTo(lx-31+t*12,246);ctx.lineTo(lx-26+t*12,253);ctx.lineTo(lx-20+t*12,244);ctx.fill();}
+ ctx.fillStyle='#245347';
+}
+// Neck and massive left-facing tyrannosaur head.
+ctx.fillStyle='#3e8067';ctx.strokeStyle='#142f2a';ctx.lineWidth=6;
+ctx.beginPath();ctx.moveTo(99,107);ctx.lineTo(94,55);ctx.bezierCurveTo(72,22,39,27,22,45);
+ctx.lineTo(8,56);ctx.lineTo(5,76);ctx.lineTo(60,85);ctx.lineTo(86,126);ctx.closePath();ctx.fill();ctx.stroke();
+// Upper snout protrudes LEFT; lower jaw opens when shooting.
+const gape=boss.mouth>0?21:6;
+ctx.fillStyle='#4e9476';ctx.beginPath();ctx.moveTo(47,49);ctx.lineTo(7,54);ctx.lineTo(0,66);ctx.lineTo(66,72);ctx.lineTo(85,59);ctx.closePath();ctx.fill();ctx.stroke();
+ctx.fillStyle='#681f26';ctx.beginPath();ctx.moveTo(5,71);ctx.lineTo(72,72);ctx.lineTo(68,76+gape);ctx.lineTo(14,79+gape);ctx.closePath();ctx.fill();
+ctx.fillStyle='#37735d';ctx.beginPath();ctx.moveTo(13,79+gape);ctx.lineTo(69,77+gape);ctx.lineTo(77,88+gape);ctx.lineTo(29,91+gape);ctx.closePath();ctx.fill();ctx.stroke();
+ctx.fillStyle='#f7e7c8';
+for(let i=0;i<6;i++){const tx=10+i*10;ctx.beginPath();ctx.moveTo(tx,70);ctx.lineTo(tx+4,80);ctx.lineTo(tx+8,71);ctx.fill();}
+// Fierce eye, brow and nostril.
+ctx.fillStyle='#ffca3d';ctx.beginPath();ctx.ellipse(47,49,9,7,0,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#131e1a';ctx.beginPath();ctx.arc(43,49,3,0,Math.PI*2);ctx.fill();
+ctx.strokeStyle='#183b32';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(33,39);ctx.lineTo(58,44);ctx.stroke();
+ctx.fillStyle='#152d28';ctx.beginPath();ctx.arc(13,61,3,0,Math.PI*2);ctx.fill();
+// Tiny predatory forearms.
+ctx.strokeStyle='#244d41';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(92,127);ctx.lineTo(66,151);ctx.lineTo(54,144);ctx.stroke();
+ctx.strokeStyle='#e0e4c7';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(52,143);ctx.lineTo(46,148);ctx.moveTo(55,145);ctx.lineTo(52,152);ctx.stroke();
 ctx.restore();
 for(const ball of boss.fireballs){
  const glow=ctx.createRadialGradient(ball.x,ball.y,2,ball.x,ball.y,22);
