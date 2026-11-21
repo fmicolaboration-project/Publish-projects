@@ -14,6 +14,7 @@ const keys={left:false,right:false,jump:false,duck:false};
 const world=6500,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
 let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss;
 const bossSprite=new Image();bossSprite.src='monster.svg?v=d3ead88';
+const bossFallenSprite=new Image();bossFallenSprite.src='monster-fallen.svg?v=dbf3779';
 function resize(){W=innerWidth;H=innerHeight;const dpr=Math.min(devicePixelRatio||1,2);c.width=Math.round(W*dpr);c.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);ground=H-(H>W?105:115)}
 addEventListener('resize',resize);resize();
 function reset(){
@@ -323,25 +324,14 @@ if(bossSprite.complete&&bossSprite.naturalWidth&&bossSprite.naturalHeight){
  const drawW=Math.min(maxW,maxH*aspect);
  const drawH=drawW/aspect;
  if(boss.down){
-  // Keep the original left-facing head and tail horizontal. A separate
-  // knocked-down pose is needed for a genuine side-lying silhouette:
-  // rotating this side-profile sprite 90 degrees points its head into
-  // the ground and raises its tail vertically.
-  // Instead show the intact monster slumped into the arena floor,
-  // without rotation, distortion, or cropping.
-  const sunk=drawH*.68;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(boss.x-8,ground-55,drawW+16,55);
-  ctx.clip();
-  ctx.globalAlpha=.88;
-  ctx.drawImage(bossSprite,boss.x,ground-drawH+sunk,drawW,drawH);
-  ctx.restore();
-  // Ground-level dust makes the temporary stunned state visible.
-  ctx.fillStyle='#b3a9c455';
-  ctx.beginPath();
-  ctx.ellipse(boss.x+drawW*.47,ground-5,drawW*.44,10,0,0,Math.PI*2);
-  ctx.fill();
+  // Dedicated side-lying pose: head left, tail right, no rotation or squashing.
+  const fallenW=Math.min(Math.max(boss.w,165),W*.75);
+  const fallenH=fallenW*(210/760);
+  if(bossFallenSprite.complete&&bossFallenSprite.naturalWidth){
+   ctx.drawImage(bossFallenSprite,boss.x,ground-fallenH,fallenW,fallenH);
+  }else{
+   ctx.drawImage(bossSprite,boss.x,ground-drawH,drawW,drawH);
+  }
  }else{
   // Render the intact original monster SVG; never crop or rotate its head.
   ctx.drawImage(bossSprite,boss.x,ground-drawH,drawW,drawH);
