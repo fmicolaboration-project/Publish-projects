@@ -12,7 +12,7 @@ const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.
 let W,H,scale,ground,camera=0,cameraY=0,active=false,won=false,last=0,now=0;
 const keys={left:false,right:false,jump:false,duck:false};
 const world=8300,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
-let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss,chase,lasers;
+let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss,chase,vents;
 const bossSprite=new Image();bossSprite.src='monster.svg?v=d3ead88';
 const bossFallenSprite=new Image();bossFallenSprite.src='monster-fallen.svg?v=dbf3779';
 function resize(){W=innerWidth;H=innerHeight;const dpr=Math.min(devicePixelRatio||1,2);c.width=Math.round(W*dpr);c.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);ground=H-(H>W?105:115)}
@@ -41,7 +41,7 @@ bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-85,trigge
 spikes=[{x:3970,w:350,y:ground-27,h:27},{x:4510,w:530,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
 boss={x:5710,w:Math.max(140,Math.min(W*.72,420)),h:Math.max(90,Math.min(H*.36,W*.72/1.8)),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,defeated:false,fireballs:[],mouth:0,beam:null,headTilt:0};
-chase={active:false,done:false,started:false};lasers=Array.from({length:5},(_,i)=>({x:6250+i*335,w:95,high:i%2===0,phase:i*.83}));checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
+chase={active:false,done:false,started:false};vents=Array.from({length:5},(_,i)=>({x:6280+i*335,w:76,phase:i*.78}));checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
 function jump(){
 if(!active||p.climb||keys.duck)return;
@@ -84,9 +84,8 @@ function tick(dt){
 now+=dt;
 // Boss arena: a telegraphed electric beam at standing head height.
 const inArena=p.x>boss.x-650&&p.x<boss.x+boss.w+50;
-const inLasers=p.x>boss.x+boss.w&&p.x<world-110;
-document.getElementById('duck').style.display=(inArena||inLasers)?'block':'none';
-if(!inArena&&!inLasers)keys.duck=false;
+document.getElementById('duck').style.display=inArena?'block':'none';
+if(!inArena)keys.duck=false;
 if(inArena&&!won){
  if(boss.down){
   boss.headTilt+=(0-boss.headTilt)*Math.min(1,dt*5);
@@ -118,18 +117,17 @@ if(inArena&&!won){
   }
  }
 }
-// Final laser corridor begins after the defeated boss.
+// Steam vents replace the final laser corridor after the defeated boss.
 if(!chase.started&&boss.defeated&&p.x>boss.x+boss.w+45){
- chase.started=true;chase.active=true;status.textContent='LORONG LASER! JUMP / DUCK!';
+ chase.started=true;chase.active=true;status.textContent='SEMBURAN UAP! TUNGGU / LOMPAT!';
 }
 if(chase.active){
- for(const beam of lasers){
-  const cycle=(now+beam.phase)%3.4;
-  if(cycle<1.25||cycle>=2.2)continue;
-  const y=beam.high?ground-49:ground-23;
-  const ducking=keys.duck&&p.grounded;
-  const hitbox=ducking?{x:p.x,y:p.y+p.h*.55,w:p.w,h:p.h*.45}:p;
-  if(rectHit(hitbox,{x:beam.x,y,w:beam.w,h:10})){fail();return;}
+ for(const vent of vents){
+  const cycle=(now+vent.phase)%3.5;
+  const erupting=cycle>=1.45&&cycle<2.45;
+  if(!erupting)continue;
+  // Hot steam reaches well above the player's jump height.
+  if(rectHit(p,{x:vent.x+6,y:ground-180,w:vent.w-12,h:180})){fail();return;}
  }
 }
 // Planks activate left-to-right once the player reaches the bridge.
@@ -374,20 +372,26 @@ if(boss.beam&&!boss.down){
  }
  ctx.restore();
 }
-// Final corridor: high lasers demand DUCK, low lasers demand JUMP.
+// Animated steam vents: idle, thin warning mist, then tall hot plume.
 if(chase.started){
- for(const beam of lasers){
-  const cycle=(now+beam.phase)%3.4;
-  const firing=cycle>=1.25&&cycle<2.2,warning=cycle>=.85&&cycle<1.25;
-  const y=beam.high?ground-49:ground-23;
-  ctx.fillStyle='#39435a';ctx.fillRect(beam.x-10,y-17,12,43);
-  ctx.fillRect(beam.x+beam.w-2,y-17,12,43);
-  ctx.fillStyle=firing?'#ff394b':warning?'#ffb44e':'#59748b';
-  ctx.fillRect(beam.x-8,y-6,8,20);ctx.fillRect(beam.x+beam.w,y-6,8,20);
-  if(firing||warning){
-   ctx.save();ctx.shadowColor=firing?'#ff304e':'#ffae53';ctx.shadowBlur=firing?18:6;
-   ctx.fillStyle=firing?'#ff4359':'#ffae5380';ctx.fillRect(beam.x,y,beam.w,firing?9:3);
-   if(firing){ctx.fillStyle='#fff3f4';ctx.fillRect(beam.x,y+3,beam.w,3);}
+ for(const vent of vents){
+  const cycle=(now+vent.phase)%3.5;
+  const warning=cycle>=.95&&cycle<1.45;
+  const erupting=cycle>=1.45&&cycle<2.45;
+  ctx.fillStyle='#303b49';ctx.fillRect(vent.x-6,ground-8,vent.w+12,9);
+  ctx.fillStyle=erupting?'#ff9b42':warning?'#f6b96b':'#64727d';
+  for(let k=0;k<5;k++)ctx.fillRect(vent.x+6+k*(vent.w-12)/5,ground-7,(vent.w-12)/10,6);
+  if(warning||erupting){
+   ctx.save();
+   ctx.globalAlpha=erupting?.86:.35;
+   const plumeH=erupting?180:40;
+   for(let k=0;k<9;k++){
+    const h=plumeH*(k+1)/10;
+    const sway=Math.sin(now*7+k*1.7)*10;
+    const width=erupting?20+Math.sin(k*2.2)*6:9;
+    ctx.fillStyle=k%2?'#eaf4ff':'#b6d3e3';
+    ctx.beginPath();ctx.ellipse(vent.x+vent.w/2+sway,ground-h,width,erupting?22:9,0,0,Math.PI*2);ctx.fill();
+   }
    ctx.restore();
   }
  }
