@@ -323,10 +323,25 @@ if(bossSprite.complete&&bossSprite.naturalWidth&&bossSprite.naturalHeight){
  const drawW=Math.min(maxW,maxH*aspect);
  const drawH=drawW/aspect;
  if(boss.down){
-  // Rotate the complete sprite around its feet instead of vertically squashing it.
-  ctx.translate(boss.x+drawH*.55,ground-5);
-  ctx.rotate(-Math.PI/2);
-  ctx.drawImage(bossSprite,0,-drawH,drawW,drawH);
+  // Keep the original left-facing head and tail horizontal. A separate
+  // knocked-down pose is needed for a genuine side-lying silhouette:
+  // rotating this side-profile sprite 90 degrees points its head into
+  // the ground and raises its tail vertically.
+  // Instead show the intact monster slumped into the arena floor,
+  // without rotation, distortion, or cropping.
+  const sunk=drawH*.68;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(boss.x-8,ground-55,drawW+16,55);
+  ctx.clip();
+  ctx.globalAlpha=.88;
+  ctx.drawImage(bossSprite,boss.x,ground-drawH+sunk,drawW,drawH);
+  ctx.restore();
+  // Ground-level dust makes the temporary stunned state visible.
+  ctx.fillStyle='#b3a9c455';
+  ctx.beginPath();
+  ctx.ellipse(boss.x+drawW*.47,ground-5,drawW*.44,10,0,0,Math.PI*2);
+  ctx.fill();
  }else{
   // Render the intact original monster SVG; never crop or rotate its head.
   ctx.drawImage(bossSprite,boss.x,ground-drawH,drawW,drawH);
