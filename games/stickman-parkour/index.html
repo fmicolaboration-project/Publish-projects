@@ -330,7 +330,15 @@ if(bossSprite.complete&&bossSprite.naturalWidth&&bossSprite.naturalHeight){
 }
 ctx.restore();
 if(boss.beam&&!boss.down){
- const startX=boss.x+boss.w*.13, startY=ground-boss.h*.60;
+ // Use the identical head pivot and local mouth coordinates as the rotating sprite.
+ const aspect=bossSprite.naturalWidth&&bossSprite.naturalHeight?bossSprite.naturalWidth/bossSprite.naturalHeight:1.8;
+ const drawW=Math.min(boss.w,Math.max(130,W-45),boss.h*aspect);
+ const drawH=drawW/aspect;
+ const pivotX=boss.x+drawW*.23,pivotY=ground-drawH+drawH*.42;
+ const mouthLocalX=-drawW*.10,mouthLocalY=-drawH*.02;
+ const angle=boss.headTilt;
+ const startX=pivotX+mouthLocalX*Math.cos(angle)-mouthLocalY*Math.sin(angle);
+ const startY=pivotY+mouthLocalX*Math.sin(angle)+mouthLocalY*Math.cos(angle);
  const targetX=p.x+12,targetY=ground-43;
  const firing=boss.beam.elapsed>.38;
  ctx.save();ctx.lineCap='round';ctx.shadowColor='#35baff';ctx.shadowBlur=firing?24:8;
