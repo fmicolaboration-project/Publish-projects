@@ -305,40 +305,17 @@ if(bossSprite.complete&&bossSprite.naturalWidth&&bossSprite.naturalHeight){
   ctx.rotate(-Math.PI/2);
   ctx.drawImage(bossSprite,0,-drawH,drawW,drawH);
  }else{
-  // Draw torso/tail without the upper-left head region.
-  const headW=drawW*.27,headH=drawH*.49;
-  ctx.save();ctx.beginPath();
-  ctx.rect(boss.x+headW,ground-drawH,drawW-headW,drawH);
-  ctx.rect(boss.x,ground-drawH+headH,headW,drawH-headH);
-  ctx.clip();
+  // Render the intact original monster SVG; never crop or rotate its head.
   ctx.drawImage(bossSprite,boss.x,ground-drawH,drawW,drawH);
-  ctx.restore();
-  // Reattach the cropped head around the neck, tilting toward the player.
-  const pivotX=boss.x+drawW*.23,pivotY=ground-drawH+drawH*.42;
-  ctx.save();ctx.translate(pivotX,pivotY);ctx.rotate(boss.headTilt);
-  const srcW=bossSprite.naturalWidth*.27,srcH=bossSprite.naturalHeight*.49;
-  ctx.drawImage(bossSprite,0,0,srcW,srcH,-drawW*.23,-drawH*.42,headW,headH);
-  if(boss.mouth>0){
-   const open=Math.sin(Math.min(1,boss.mouth/.85)*Math.PI)*Math.max(10,drawH*.085);
-   const mx=-drawW*.10,my=-drawH*.02;
-   ctx.fillStyle='#291c29';ctx.beginPath();ctx.ellipse(mx,my+open*.35,drawW*.055,open*.65,0,0,Math.PI*2);ctx.fill();
-   ctx.strokeStyle='#52535e';ctx.lineWidth=Math.max(4,drawH*.025);
-   ctx.beginPath();ctx.moveTo(mx-drawW*.05,my+open*.65);ctx.lineTo(mx+drawW*.04,my+open*.85);ctx.stroke();
-  }
-  ctx.restore();
  }
 }
 ctx.restore();
 if(boss.beam&&!boss.down){
- // Use the identical head pivot and local mouth coordinates as the rotating sprite.
+ // Beam begins at the intact sprite's approximate mouth location.
  const aspect=bossSprite.naturalWidth&&bossSprite.naturalHeight?bossSprite.naturalWidth/bossSprite.naturalHeight:1.8;
  const drawW=Math.min(boss.w,Math.max(130,W-45),boss.h*aspect);
  const drawH=drawW/aspect;
- const pivotX=boss.x+drawW*.23,pivotY=ground-drawH+drawH*.42;
- const mouthLocalX=-drawW*.10,mouthLocalY=-drawH*.02;
- const angle=boss.headTilt;
- const startX=pivotX+mouthLocalX*Math.cos(angle)-mouthLocalY*Math.sin(angle);
- const startY=pivotY+mouthLocalX*Math.sin(angle)+mouthLocalY*Math.cos(angle);
+ const startX=boss.x+drawW*.13,startY=ground-drawH+drawH*.40;
  const targetX=p.x+12,targetY=ground-43;
  const firing=boss.beam.elapsed>.38;
  ctx.save();ctx.lineCap='round';ctx.shadowColor='#35baff';ctx.shadowBlur=firing?24:8;
