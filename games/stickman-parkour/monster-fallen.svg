@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 210">
+<g stroke="#292a35" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+<!-- tail stays flat on the ground, stretching to the right -->
+<path fill="#494a55" d="M375 106 Q470 97 555 128 Q635 148 747 164 Q652 176 565 166 Q470 158 373 160Z"/>
+<path fill="#9a9ca6" stroke="none" d="M450 151 Q560 155 690 164 Q563 162 462 160Z"/>
+<!-- dorsal spines on the reclining back -->
+<path fill="#59306c" d="M220 105 L231 63 248 93 268 46 286 88 311 39 329 90 355 52 367 102 397 70 402 116 430 91 428 125 459 111 447 140 410 150Z"/>
+<path fill="#4b4c57" d="M178 119 Q215 85 285 92 Q345 87 409 122 Q456 146 410 168 Q321 188 225 175 Q164 171 178 119Z"/>
+<!-- belly -->
+<path fill="#9b9da8" stroke="none" d="M200 151 Q284 174 397 156 Q364 182 267 181 Q213 179 200 151Z"/>
+<!-- hind leg folded flat -->
+<path fill="#4b4c57" d="M335 135 Q379 112 405 140 L437 168 488 172 491 184 447 188 405 181 Q368 181 347 172Z"/>
+<path fill="#d2c6a0" stroke="none" d="M476 173 L488 171 492 183 477 183Z"/>
+<!-- forearm resting on ground -->
+<path fill="#4b4c57" d="M215 137 Q237 137 249 157 L271 176 294 179 295 189 258 190 Q235 183 215 164Z"/>
+<path fill="#d2c6a0" stroke="none" d="M286 180 L298 179 299 189 284 190Z"/>
+<!-- neck and head facing left, resting horizontally -->
+<path fill="#4b4c57" d="M204 119 Q178 101 149 109 Q132 104 117 112 L94 121 57 124 Q35 125 29 142 L34 155 63 157 88 166 117 163 137 152 179 153 205 161Z"/>
+<path fill="#a0a2ac" stroke="none" d="M51 150 Q76 153 104 158 L123 151 Q100 172 67 162Z"/>
+<!-- lower jaw open slightly, but horizontal -->
+<path fill="#35313e" d="M30 151 Q52 163 82 164 L109 157 Q95 174 68 176 L36 166Z"/>
+<path fill="#bd7d91" stroke="none" d="M42 161 Q69 170 89 165 Q68 172 45 166Z"/>
+<path fill="#e0d9c8" stroke="none" d="M46 154 L52 162 58 157 65 165 71 160 78 166 84 161"/>
+<ellipse cx="98" cy="130" rx="9" ry="7" fill="#e6c85e" stroke="#34343b" stroke-width="3"/>
+<circle cx="95" cy="130" r="3" fill="#24232d" stroke="none"/>
+<circle cx="49" cy="139" r="3" fill="#262530" stroke="none"/>
+</g></svg>
