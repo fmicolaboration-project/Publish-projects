@@ -4,20 +4,20 @@
 *{box-sizing:border-box}body{margin:0;background:#101827;color:#eaf5ff;font:15px system-ui,sans-serif;overflow:hidden}canvas{display:block;width:100vw;height:100dvh;touch-action:none}.hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none;text-shadow:0 2px 3px #000}.badge{background:#15243bd9;padding:8px 12px;border:1px solid #54728b;border-radius:12px}.controls{position:fixed;bottom:18px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none}.group{display:flex;gap:12px}.btn{pointer-events:auto;touch-action:none;border:2px solid #8ecaff;background:#1a3958d9;color:white;border-radius:18px;width:75px;height:72px;font-size:26px;font-weight:bold;user-select:none;-webkit-user-select:none}.jump{width:105px;background:#17675e;border-color:#71f4c9;font-size:17px}.overlay{position:fixed;inset:0;display:grid;place-items:center;background:#071321a8}.card{max-width:360px;margin:20px;padding:24px;text-align:center;border:1px solid #80b6d1;background:#13243a;border-radius:20px}.card h1{margin-top:0}.card button{background:#64d9bb;color:#102c2b;border:0;border-radius:12px;padding:14px 24px;font-size:18px;font-weight:800}.hidden{display:none}small{color:#c1d8e9}
 </style></head><body>
 <canvas id="game"></canvas><div class="hud"><div class="badge" id="status">STICKMAN PARKOUR</div><div class="badge" id="progress">0 m</div></div>
-<div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><button class="btn jump" data-key="jump">JUMP</button></div>
+<div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><div class="group"><button class="btn" id="duck" data-key="duck" style="display:none;font-size:17px;background:#574180">DUCK</button><button class="btn jump" data-key="jump">JUMP</button></div></div>
 <div class="overlay" id="overlay"><div class="card"><h1 id="title">STICKMAN PARKOUR</h1><p id="message">Lari, lompat, tangkap bibir atas tembok, lalu tahan arah menuju tembok + JUMP bersamaan dalam <b>0,7 detik</b> untuk memanjat dan berdiri di atasnya. Hindari rintangan bergerak dan spike di bawah platform melayang! Sebelum platform melayang, masuki portal ungu agar membesar, lakukan lima wall-jump bergantian (arah berlawanan + JUMP), lalu sentuh portal hijau di puncak untuk kembali normal. Di akhir, seberangi jembatan plank yang runtuh dari kiri ke kanan.</p><p><small>HP: tombol layar · PC: ← → / A D dan Spasi / ↑</small></p><button id="start">MULAI</button></div></div>
 <script>
 (()=>{
 const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.getElementById('overlay'),status=document.getElementById('status'),progress=document.getElementById('progress');
 let W,H,scale,ground,camera=0,cameraY=0,active=false,won=false,last=0,now=0;
-const keys={left:false,right:false,jump:false};
+const keys={left:false,right:false,jump:false,duck:false};
 const world=6500,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
 let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss;
 const bossSprite=new Image();bossSprite.src='monster.svg?v=d3ead88';
 function resize(){W=innerWidth;H=innerHeight;c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ground=H-115}
 addEventListener('resize',resize);resize();
 function reset(){
-keys.left=keys.right=keys.jump=false;
+keys.left=keys.right=keys.jump=keys.duck=false;document.getElementById('duck').style.display='none';
 p={x:60,y:ground-54,w:23,h:54,vx:0,vy:0,grounded:true,grab:null,climb:null,hold:0,face:1,runPhase:0,wallDir:0,wallJumps:0,wallLock:0,wallGrace:0,portalStage:0};
 blocks=[
 {x:360,w:105,h:58},{x:630,w:110,h:110},{x:940,w:100,h:142},
@@ -39,11 +39,11 @@ platforms=[{x:4000,w:130,y:ground-85},{x:4155,w:130,y:ground-125},
 bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-85,triggerAt:null}));
 spikes=[{x:3970,w:350,y:ground-27,h:27},{x:4510,w:530,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
-boss={x:world-790,w:Math.min(W-65,Math.max(140,ground-24)*1.8),h:Math.min(Math.max(140,ground-24),(W-65)/1.8),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0};
+boss={x:world-790,w:Math.min(W-65,Math.max(140,ground-24)*1.8),h:Math.min(Math.max(140,ground-24),(W-65)/1.8),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0,beam:null};
 checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
 function jump(){
-if(!active||p.climb)return;
+if(!active||p.climb||keys.duck)return;
 // Wall jump only when pushing away from the wall + JUMP.
 const away=(keys.right?1:0)-(keys.left?1:0);
 if(p.portalStage===1&&!p.grounded&&p.wallDir&&away===-p.wallDir&&p.wallJumps<5){
@@ -68,6 +68,7 @@ function input(k,down){
 const wasDown=keys[k];keys[k]=down;
 if(!down||wasDown)return;
 if(k==='jump'){jump();return}
+if(k==='duck')return;
 // Multitouch order is independent: RIGHT then JUMP or JUMP then RIGHT.
 if(k==='right'&&keys.jump&&p.grab)jump();
 if((k==='right'||k==='left')&&keys.jump&&p.wallDir&&((k==='right'?1:-1)===-p.wallDir))jump();
@@ -76,27 +77,42 @@ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addE
 addEventListener('keydown',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();if(!e.repeat)input(k,true)}});
 addEventListener('keyup',e=>{let k=e.code==='ArrowLeft'||e.code==='KeyA'?'left':e.code==='ArrowRight'||e.code==='KeyD'?'right':e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'?'jump':null;if(k){e.preventDefault();input(k,false)}});
 document.getElementById('start').onclick=()=>{reset();active=true;overlay.classList.add('hidden');last=performance.now()};
-function fail(){if(boss){boss.fireballs=[];boss.cooldown=1.2;}for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
+function fail(){if(boss){boss.fireballs=[];boss.beam=null;boss.cooldown=1.2;}for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function tick(dt){
 now+=dt;
-// The stationary boss attacks when approached, then collapses for exactly seven seconds.
-if(p.x>boss.x-650&&!won){
+// Boss arena: a telegraphed electric beam at standing head height.
+const inArena=p.x>boss.x-650&&p.x<boss.x+boss.w+50;
+document.getElementById('duck').style.display=inArena?'block':'none';
+if(!inArena)keys.duck=false;
+if(inArena&&!won){
  if(boss.down){
-  if(now>=boss.downUntil){boss.down=false;boss.shots=0;boss.limit=7+Math.floor(Math.random()*4);boss.cooldown=1.1;}
+  boss.beam=null;
+  if(now>=boss.downUntil){boss.down=false;boss.shots=0;boss.limit=7+Math.floor(Math.random()*4);boss.cooldown=1.2;}
  }else{
   boss.cooldown-=dt;
   boss.mouth=Math.max(0,boss.mouth-dt);
-  if(boss.cooldown<=0){
-   boss.fireballs.push({x:boss.x+boss.w*.125,y:ground-boss.h*.61,r:13,vx:-(boss.shots%2===0?390:255),vy:-40});
-   boss.shots++;boss.mouth=.32;boss.cooldown=1.05;
-   if(boss.shots>=boss.limit){boss.down=true;boss.downUntil=now+7;status.textContent='MONSTER ROBOH! 7 DETIK!';}
+  if(boss.beam){
+   boss.beam.elapsed+=dt;
+   if(boss.beam.elapsed>=.85)boss.beam=null;
+  }else if(boss.cooldown<=0){
+   boss.beam={elapsed:0};
+   boss.mouth=.85;
+   boss.shots++;
+   boss.cooldown=1.35;
+  }
+  if(boss.beam&&boss.beam.elapsed>.38&&boss.beam.elapsed<.85){
+   // Beam is safely above the ducking player's head.
+   const beamY=ground-43;
+   const ducking=keys.duck&&p.grounded;
+   if(!ducking&&p.x+p.w>boss.x-900&&p.x<boss.x+boss.w&&p.y<beamY+8&&p.y+p.h>beamY-8){fail();return;}
+  }
+  if(boss.shots>=boss.limit&&!boss.beam){
+   boss.down=true;boss.downUntil=now+7;
+   status.textContent='MONSTER ROBOH! 7 DETIK!';
   }
  }
 }
-for(const ball of boss.fireballs){ball.x+=ball.vx*dt;ball.vy+=1000*dt;ball.y=Math.min(ground-ball.r,ball.y+ball.vy*dt);}
-boss.fireballs=boss.fireballs.filter(ball=>ball.x>boss.x-1100);
-if(boss.fireballs.some(ball=>rectHit(p,{x:ball.x-ball.r,y:ball.y-ball.r,w:ball.r*2,h:ball.r*2}))){fail();return;}
 // Planks activate left-to-right once the player reaches the bridge.
 // Each breaks 0.4 seconds after its own activation.
 for(const h of hazards)h.y=h.base+Math.sin(now*h.speed+h.phase)*h.amp;
@@ -119,7 +135,7 @@ else status.textContent='GRAB '+p.hold.toFixed(2)+'s · JUMP!';
 const oldX=p.x,oldY=p.y;
 p.wallLock=Math.max(0,p.wallLock-dt);
 p.wallGrace=Math.max(0,p.wallGrace-dt);
-p.vx=((keys.right?1:0)-(keys.left?1:0))*SPEED;
+p.vx=((keys.right?1:0)-(keys.left?1:0))*SPEED*(keys.duck&&p.grounded?.25:1);
 if(p.vx)p.face=Math.sign(p.vx);
 if(p.grounded&&p.vx)p.runPhase+=Math.abs(p.vx)*dt*.060;
 p.x=Math.max(0,Math.min(world-p.w,p.x+p.vx*dt));
@@ -299,14 +315,25 @@ if(bossSprite.complete&&bossSprite.naturalWidth&&bossSprite.naturalHeight){
  }
 }
 ctx.restore();
-for(const ball of boss.fireballs){
- const glow=ctx.createRadialGradient(ball.x,ball.y,2,ball.x,ball.y,22);
- glow.addColorStop(0,'#fff7a1');glow.addColorStop(.45,'#ff9d23');glow.addColorStop(1,'#e7431200');
- ctx.fillStyle=glow;ctx.beginPath();ctx.arc(ball.x,ball.y,22,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#ff5b19';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+if(boss.beam&&!boss.down){
+ const beamY=ground-43, startX=boss.x+boss.w*.12;
+ ctx.save();
+ const firing=boss.beam.elapsed>.38;
+ ctx.strokeStyle=firing?'#9dfaff':'#a6dfff80';
+ ctx.lineWidth=firing?13:3;ctx.shadowColor='#35baff';ctx.shadowBlur=firing?24:8;
+ ctx.beginPath();ctx.moveTo(startX,beamY);ctx.lineTo(startX-(firing?1000:95),beamY);ctx.stroke();
+ if(firing){
+  ctx.strokeStyle='#ffffff';ctx.lineWidth=3;ctx.shadowBlur=0;
+  ctx.beginPath();ctx.moveTo(startX,beamY);
+  for(let i=1;i<=25;i++)ctx.lineTo(startX-i*40,beamY+(i%2?5:-5));
+  ctx.stroke();
+ }
+ ctx.restore();
 }
 ctx.fillStyle='#f4d477';ctx.fillRect(world-100,ground-210,7,210);ctx.fillStyle='#67e2ba';ctx.fillRect(world-93,ground-210,80,45);
 const x=p.x+p.w/2,y=p.y,face=p.face;
+const ducking=keys.duck&&p.grounded&&p.x>boss.x-650;
+if(ducking){ctx.save();ctx.translate(x,p.y+p.h);ctx.scale(1,.45);ctx.translate(-x,-(p.y+p.h));}
 // Stick-figure art remains proportional to the actual collision box.
 ctx.save();ctx.translate(x,y);ctx.scale(p.h/54,p.h/54);ctx.translate(-x,-y);
 const running=p.grounded&&!p.grab&&!p.climb&&Math.abs(p.vx)>1;
@@ -345,6 +372,7 @@ line(x,y+39,x-10,y+54);line(x,y+39,x+10,y+54);
 ctx.stroke();
 if(p.grab){ctx.strokeStyle='#7ff9c9';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y+10,18,-Math.PI*.8,-Math.PI*.2);ctx.stroke()}
 ctx.restore(); // Character scale
+if(ducking)ctx.restore();
 ctx.restore(); // World camera
 }
 function loop(t){let dt=Math.min(.032,(t-last)/1000||0);last=t;if(active)tick(dt);draw();requestAnimationFrame(loop)}
