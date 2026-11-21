@@ -271,11 +271,22 @@ ctx.beginPath();ctx.moveTo(sx,ground);ctx.lineTo(sx+step/2,spike.y);ctx.lineTo(s
 }
 }
 for(const h of hazards){ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
-// Embedded transparent monster image based on the supplied reference.
+// Preserve the actual SVG intrinsic aspect ratio in both upright and fallen states.
 ctx.save();
-if(bossSprite.complete&&bossSprite.naturalWidth){
- const spriteH=boss.down?Math.min(75,boss.h*.4):boss.h;
- ctx.drawImage(bossSprite,boss.x,ground-spriteH,boss.h*1.8*(spriteH/boss.h),spriteH);
+if(bossSprite.complete&&bossSprite.naturalWidth&&bossSprite.naturalHeight){
+ const aspect=bossSprite.naturalWidth/bossSprite.naturalHeight;
+ const maxW=Math.min(boss.w,Math.max(130,W-45));
+ const maxH=Math.max(65,ground-12);
+ const drawW=Math.min(maxW,maxH*aspect);
+ const drawH=drawW/aspect;
+ if(boss.down){
+  // Rotate the complete sprite around its feet instead of vertically squashing it.
+  ctx.translate(boss.x+drawH*.55,ground-5);
+  ctx.rotate(-Math.PI/2);
+  ctx.drawImage(bossSprite,0,-drawH,drawW,drawH);
+ }else{
+  ctx.drawImage(bossSprite,boss.x,ground-drawH,drawW,drawH);
+ }
 }
 ctx.restore();
 for(const ball of boss.fireballs){
