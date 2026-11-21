@@ -39,7 +39,7 @@ platforms=[{x:4000,w:130,y:ground-85},{x:4155,w:130,y:ground-125},
 bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-85,triggerAt:null}));
 spikes=[{x:3970,w:350,y:ground-27,h:27},{x:4510,w:530,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
-boss={x:world-790,w:Math.min(480,Math.max(320,W*.72)),h:Math.min(ground-12,Math.min(480,Math.max(320,W*.72))/1.8),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0};
+boss={x:world-790,w:Math.min(690,Math.max(390,W-70)),h:Math.min(690,Math.max(390,W-70))/1.8,shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,fireballs:[],mouth:0};
 checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
 function jump(){
@@ -88,13 +88,13 @@ if(p.x>boss.x-650&&!won){
   boss.cooldown-=dt;
   boss.mouth=Math.max(0,boss.mouth-dt);
   if(boss.cooldown<=0){
-   boss.fireballs.push({x:boss.x+14,y:ground-22,r:13,vx:-(boss.shots%2===0?390:255)});
+   boss.fireballs.push({x:boss.x+boss.w*.065,y:ground-boss.h*.79,r:13,vx:-(boss.shots%2===0?390:255),vy:-40});
    boss.shots++;boss.mouth=.32;boss.cooldown=1.05;
    if(boss.shots>=boss.limit){boss.down=true;boss.downUntil=now+7;boss.fireballs=[];status.textContent='MONSTER ROBOH! 7 DETIK!';}
   }
  }
 }
-for(const ball of boss.fireballs)ball.x+=ball.vx*dt;
+for(const ball of boss.fireballs){ball.x+=ball.vx*dt;ball.vy+=1000*dt;ball.y=Math.min(ground-ball.r,ball.y+ball.vy*dt);}
 boss.fireballs=boss.fireballs.filter(ball=>ball.x>boss.x-1100);
 if(boss.fireballs.some(ball=>rectHit(p,{x:ball.x-ball.r,y:ball.y-ball.r,w:ball.r*2,h:ball.r*2}))){fail();return;}
 // Planks activate left-to-right once the player reaches the bridge.
@@ -211,7 +211,8 @@ if(!blocks.some(b=>candidate+p.w>b.x&&candidate<b.x+b.w)&&
 !spikes.some(z=>candidate+p.w>z.x&&candidate<z.x+z.w))checkpoint=candidate;
 }
 camera+=(Math.max(0,Math.min(world-W,p.x-W*.32))-camera)*Math.min(1,dt*7);
-const desiredY=Math.max(0,H*.43-p.y);
+const bossView=p.x>boss.x-650?Math.max(0,boss.h-(ground-22)):0;
+const desiredY=Math.max(bossView,Math.max(0,H*.43-p.y));
 cameraY+=(desiredY-cameraY)*Math.min(1,dt*8);
 progress.textContent=Math.floor(p.x/10)+' m';
 }
@@ -276,7 +277,7 @@ ctx.save();
 if(bossSprite.complete&&bossSprite.naturalWidth&&bossSprite.naturalHeight){
  const aspect=bossSprite.naturalWidth/bossSprite.naturalHeight;
  const maxW=Math.min(boss.w,Math.max(130,W-45));
- const maxH=Math.max(65,ground-12);
+ const maxH=boss.h;
  const drawW=Math.min(maxW,maxH*aspect);
  const drawH=drawW/aspect;
  if(boss.down){
@@ -286,6 +287,13 @@ if(bossSprite.complete&&bossSprite.naturalWidth&&bossSprite.naturalHeight){
   ctx.drawImage(bossSprite,0,-drawH,drawW,drawH);
  }else{
   ctx.drawImage(bossSprite,boss.x,ground-drawH,drawW,drawH);
+  // Moving lower jaw overlay while the meteor is fired.
+  if(boss.mouth>0){
+   const hx=boss.x+drawW*.058,hy=ground-drawH*.82;
+   const opening=12+Math.sin(Math.min(1,boss.mouth/.32)*Math.PI)*9;
+   ctx.fillStyle='#ad4678';ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(hx+drawW*.075,hy-3);ctx.lineTo(hx+drawW*.054,hy+opening);ctx.closePath();ctx.fill();
+   ctx.strokeStyle='#484953';ctx.lineWidth=Math.max(5,drawH*.035);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(hx+drawW*.068,hy+2);ctx.lineTo(hx+drawW*.052,hy+opening);ctx.lineTo(hx+drawW*.016,hy+opening+5);ctx.stroke();
+  }
  }
 }
 ctx.restore();
