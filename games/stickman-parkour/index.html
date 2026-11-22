@@ -305,7 +305,24 @@ if(p.x>boss.x-750){
   ctx.fillRect(bx,H*.82-bh,bw,bh);ctx.fillRect(bx+8,H*.82-bh-12,8,12);
  }
 }
-ctx.fillStyle='#ffffff12';for(let i=0;i<35;i++ ){const x=((i*191-camera*.17)%(W+150)+(W+150))%(W+150);ctx.fillRect(x,i*53%Math.max(1,H-120),2,2)}
+// Layered starfield: deterministic positions, subtle twinkle and slow parallax.
+const starSeed=n=>{const v=Math.sin(n*127.1+78.233)*43758.5453;return v-Math.floor(v)};
+for(let layer=0;layer<3;layer++){
+ const count=[45,32,18][layer],depth=[.035,.09,.17][layer];
+ for(let i=0;i<count;i++){
+  const seed=i+layer*137;
+  const span=W+90;
+  const x=((starSeed(seed)*span-camera*depth)%span+span)%span-45;
+  const y=12+starSeed(seed+61)*Math.max(30,H*.73-24);
+  const radius=[.7,1.15,1.65][layer]+starSeed(seed+19)*.5;
+  const twinkle=.68+.32*Math.sin(now*[.75,1.05,1.45][layer]+seed*2.4);
+  ctx.globalAlpha=([.32,.55,.8][layer])*twinkle;
+  ctx.fillStyle=layer===2&&i%5===0?'#b7f4e9':'#e5f3ff';
+  ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
+  if(layer===2&&i%7===0){ctx.strokeStyle='#c7f4f2';ctx.lineWidth=.6;ctx.beginPath();ctx.moveTo(x-3,y);ctx.lineTo(x+3,y);ctx.moveTo(x,y-3);ctx.lineTo(x,y+3);ctx.stroke();}
+ }
+}
+ctx.globalAlpha=1;
 ctx.save();ctx.translate(-camera,cameraY);
 ctx.fillStyle='#345969';ctx.fillRect(0,ground,world,H-ground);
 if(p.x>boss.x-750){
