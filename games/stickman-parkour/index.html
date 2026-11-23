@@ -289,24 +289,39 @@ cameraY+=(desiredY-cameraY)*Math.min(1,dt*8);
 progress.textContent=Math.floor(p.x/10)+' m';
 }
 function draw(){
+const hardcore=gameMode==="hardcore";
 ctx.clearRect(0,0,W,H);
-const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#14263d');sky.addColorStop(1,'#284b5a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,hardcore?'#31090f':'#14263d');sky.addColorStop(1,hardcore?'#a42b20':'#284b5a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
 // Moonlit ruined-city backdrop for the boss encounter only.
 if(p.x>boss.x-750){
  const moonX=W*.43,moonY=H*.25,moonR=Math.min(90,H*.23);
  const glow=ctx.createRadialGradient(moonX,moonY,moonR*.35,moonX,moonY,moonR*2.3);
- glow.addColorStop(0,'#d5b5e655');glow.addColorStop(1,'#d5b5e600');
+ glow.addColorStop(0,hardcore?'#ff725555':'#d5b5e655');glow.addColorStop(1,hardcore?'#ff725500':'#d5b5e600');
  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
- ctx.fillStyle='#d4b7e3';ctx.beginPath();ctx.arc(moonX,moonY,moonR,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#b49ac5';for(let i=0;i<7;i++){ctx.beginPath();ctx.arc(moonX+Math.sin(i*8)*moonR*.67,moonY+Math.cos(i*5)*moonR*.63,moonR*(.07+i%3*.04),0,Math.PI*2);ctx.fill();}
- ctx.fillStyle='#17192e';for(let i=0;i<20;i++){
+ ctx.fillStyle=hardcore?'#d75a43':'#d4b7e3';ctx.beginPath();ctx.arc(moonX,moonY,moonR,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=hardcore?'#9c342b':'#b49ac5';for(let i=0;i<7;i++){ctx.beginPath();ctx.arc(moonX+Math.sin(i*8)*moonR*.67,moonY+Math.cos(i*5)*moonR*.63,moonR*(.07+i%3*.04),0,Math.PI*2);ctx.fill();}
+ ctx.fillStyle=hardcore?'#290e16':'#17192e';for(let i=0;i<20;i++){
   const bw=42+(i*17)%65,bh=50+(i*47)%155,bx=((i*89-camera*.12)%(W+130)+(W+130))%(W+130)-50;
   ctx.fillRect(bx,H*.82-bh,bw,bh);ctx.fillRect(bx+8,H*.82-bh-12,8,12);
  }
 }
 // Layered starfield: deterministic positions, subtle twinkle and slow parallax.
 const starSeed=n=>{const v=Math.sin(n*127.1+78.233)*43758.5453;return v-Math.floor(v)};
-for(let layer=0;layer<3;layer++){
+if(hardcore){
+ for(let layer=0;layer<3;layer++){
+  const count=[15,10,6][layer],depth=[.035,.09,.17][layer];
+  for(let i=0;i<count;i++){
+   const seed=i+layer*137,span=W+100;
+   const x=((starSeed(seed)*span-camera*depth-now*(5+layer*5))%span+span)%span-50;
+   const y=12+starSeed(seed+61)*Math.max(30,H*.73-24)+Math.sin(now*.45+seed)*7;
+   const r=[3,6,10][layer]+starSeed(seed+19)*4;
+   ctx.save();ctx.translate(x,y);ctx.rotate(seed+now*(.12+layer*.08));ctx.globalAlpha=[.5,.72,.9][layer];
+   ctx.beginPath();for(let k=0;k<8;k++){const a=k*Math.PI/4,rr=r*(.72+starSeed(seed*13+k)*.4);const xx=Math.cos(a)*rr,yy=Math.sin(a)*rr;if(k===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}ctx.closePath();
+   ctx.fillStyle='#80605a';ctx.fill();ctx.strokeStyle='#c98a70';ctx.lineWidth=.8;ctx.stroke();
+   ctx.fillStyle='#4d3030';ctx.beginPath();ctx.ellipse(-r*.2,-r*.15,r*.28,r*.2,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  }
+ }
+}else for(let layer=0;layer<3;layer++){
  const count=[45,32,18][layer],depth=[.035,.09,.17][layer];
  for(let i=0;i<count;i++){
   const seed=i+layer*137;
@@ -323,10 +338,10 @@ for(let layer=0;layer<3;layer++){
 }
 ctx.globalAlpha=1;
 ctx.save();ctx.translate(-camera,cameraY);
-ctx.fillStyle='#345969';ctx.fillRect(0,ground,world,H-ground);
+ctx.fillStyle=hardcore?'#742322':'#345969';ctx.fillRect(0,ground,world,H-ground);
 if(p.x>boss.x-750){
- ctx.fillStyle='#34304c';ctx.fillRect(boss.x-750,ground,1400,Math.max(0,H-ground));
- ctx.strokeStyle='#6c6882';ctx.lineWidth=2;
+ ctx.fillStyle=hardcore?'#591b20':'#34304c';ctx.fillRect(boss.x-750,ground,1400,Math.max(0,H-ground));
+ ctx.strokeStyle=hardcore?'#a84a40':'#6c6882';ctx.lineWidth=2;
  for(let yy=ground+20;yy<H+120;yy+=29){
   ctx.beginPath();ctx.moveTo(boss.x-750,yy);ctx.lineTo(boss.x+650,yy);ctx.stroke();
   for(let xx=boss.x-750+(Math.floor(yy/29)%2)*38;xx<boss.x+650;xx+=76){
@@ -334,7 +349,7 @@ if(p.x>boss.x-750){
   }
  }
 }
-ctx.fillStyle='#73cfac';ctx.fillRect(0,ground,world,7);
+ctx.fillStyle=hardcore?'#ff5545':'#73cfac';ctx.fillRect(0,ground,world,7);
 const lavaTop=ground+22;
 ctx.fillStyle='#202333';ctx.fillRect(lava.start,ground,lava.end-lava.start,22);
 const magma=ctx.createLinearGradient(0,lavaTop,0,lavaTop+110);magma.addColorStop(0,'#ff9d16');magma.addColorStop(.35,'#f54b12');magma.addColorStop(1,'#8d160c');
