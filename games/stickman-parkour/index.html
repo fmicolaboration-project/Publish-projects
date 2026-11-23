@@ -5,7 +5,7 @@
 .overlay{z-index:5;background:#071321eb}.card{width:min(360px,calc(100vw - 28px));max-height:92dvh;overflow-y:auto;padding:20px 18px}.card h1{font-size:clamp(20px,5vw,29px);letter-spacing:1px;margin:0}.menu-subtitle{font-size:11px;letter-spacing:2px;color:#a9d8e9;margin:5px 0 4px}.menu-scene{width:100%;height:126px;display:block;overflow:hidden}.menu-action{display:block;width:100%;margin:9px 0 0;background:#344e65!important;color:#f1f7ff!important;font-size:15px!important;padding:12px!important}.menu-action.primary{background:#35b992!important;color:#082a24!important;font-size:17px!important}.menu-panel{margin-top:10px;padding:10px;text-align:left;background:#0c1a2b;border:1px solid #48677c;border-radius:10px;font-size:12px;line-height:1.5}.menu-panel p{margin:5px 0}.menu-panel label{display:flex;align-items:center;gap:9px}.menu-panel input{width:18px;height:18px}.menu-scene .menu-runner{transform:none}.menu-scene .menu-limbs{animation:menu-stride .32s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center center}.menu-scene .menu-ground{animation:menu-scroll 1.4s linear infinite}@keyframes menu-travel{0%{transform:translate(-125px,0)}28%{transform:translate(-35px,0)}43%{transform:translate(15px,-47px)}56%{transform:translate(58px,-47px)}69%{transform:translate(101px,0)}100%{transform:translate(220px,0)}}@keyframes menu-stride{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}@keyframes menu-scroll{from{transform:translateX(0)}to{transform:translateX(-60px)}}@media(prefers-reduced-motion:reduce){.menu-scene *{animation:none!important}}
 .pause-button{position:fixed;top:12px;right:12px;z-index:4;min-width:46px;height:42px;border:1px solid #86b4bf;border-radius:10px;background:#203b50;color:#fff;font-size:21px;cursor:pointer;display:none;touch-action:manipulation}.pause-button .pause-bars{display:flex;align-items:center;justify-content:center;gap:5px;width:24px;height:24px}.pause-button .pause-bars span{display:block;width:6px;height:19px;border-radius:2px;background:#a4f5de;box-shadow:0 0 5px #5cf2c255}.pause-button{appearance:none;-webkit-appearance:none;box-shadow:inset 0 1px 0 #a4f5de22}.pause-button:active{background:#2b5567;border-color:#a4f5de}.pause-button.visible{display:flex;align-items:center;justify-content:center}.pause-screen{position:fixed;inset:0;z-index:8;background:#081321bb;display:flex;align-items:center;justify-content:center;padding:16px}.pause-screen.hidden{display:none}.pause-card{width:min(340px,95vw);padding:22px;border:1px solid #5c8398;border-radius:18px;background:#14283b;text-align:center;box-shadow:0 15px 55px #0008}.pause-card h2{margin:0 0 20px}.pause-card button{display:block;width:100%;padding:13px;margin:10px 0;border:0;border-radius:10px;background:#345e75;color:white;font-size:16px;font-weight:700}.pause-card button:first-of-type{background:#35b992;color:#092d25}.hud{padding-right:54px}@media(orientation:portrait){.pause-button{top:8px;right:8px;height:38px;min-width:40px}.hud{padding-right:46px}}.mode-picker{display:flex;gap:8px;margin:12px 0 4px}.mode-choice{flex:1;border:1px solid #587b8c;border-radius:9px;background:#20384d;color:#c8dce7;font-weight:800;padding:11px 4px;cursor:pointer}.mode-choice.selected{background:#35b992;color:#092d25;border-color:#a4f5de}.mode-choice:active{filter:brightness(1.15)}.pause-card{max-height:90dvh;overflow-y:auto}.pause-card #adminBtn{background:#73562c;color:#ffe2a0}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.admin-grid button{margin:0;padding:10px 4px;font-size:13px}.pause-card .admin-grid button:first-of-type{background:#345e75;color:white}.admin-grid.hidden{display:none}</style></head><body>
 <canvas id="game"></canvas><div class="hud"><div class="badge" id="status">STICKMAN PARKOUR</div><div class="badge" id="progress">0 m</div></div>
-<div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><div class="group"><button class="btn" id="duck" data-key="duck" style="display:none;font-size:17px;background:#574180">DUCK</button><button class="btn jump" data-key="jump">JUMP</button></div></div>
+<div class="controls"><div class="group"><button class="btn" data-key="left">◀</button><button class="btn" data-key="right">▶</button></div><div class="group"><button class="btn" id="duck" data-key="duck" style="display:none;font-size:17px;background:#574180">DUCK</button><button class="btn hidden" id="powerBtn" style="font-size:13px">POWER</button><button class="btn jump" data-key="jump">JUMP</button></div></div>
 <button id="pauseBtn" class="pause-button" type="button" aria-label="Pause permainan"><span class="pause-bars" aria-hidden="true"><span></span><span></span></span></button><div id="pauseScreen" class="pause-screen hidden"><div class="pause-card"><h2>⏸ PAUSE</h2><button id="resumeBtn" type="button">▶ LANJUTKAN</button><button id="restartBtn" type="button">↻ ULANGI</button><button id="adminBtn" type="button">⚙ ADMIN — TELEPORT</button><div id="adminPanel" class="admin-grid hidden"><button data-teleport="parkour">PARKOUR</button><button data-teleport="portal">PORTAL</button><button data-teleport="platform">PLATFORM MELAYANG</button><button data-teleport="bridge">JEMBATAN RUNTUH</button><button data-teleport="boss">GODZILLA</button><button data-teleport="lava">LAVA</button></div><button id="homeBtn" type="button">⌂ MENU UTAMA</button></div></div><div class="overlay" id="overlay"><div class="card">
 <h1 id="title">STICKMAN PARKOUR</h1>
 <div id="mainMenu">
@@ -21,18 +21,18 @@
 <g class="menu-limbs"><path d="M110 66 L92 75 M110 66 L128 57 M113 79 L98 100 M113 79 L133 98"/></g>
 </g></svg>
 <div class="mode-picker" role="group" aria-label="Pilih mode permainan"><button type="button" id="modeNormal" class="mode-choice selected" aria-pressed="true">NORMAL</button><button type="button" id="modeHardcore" class="mode-choice" aria-pressed="false">HARDCORE</button></div><button class="menu-action primary" id="start">▶ MULAI MAIN</button>
-<button class="menu-action" id="settingsBtn" type="button">⚙ PENGATURAN</button>
+<div id="coinBalance" style="color:#ffd36a;font-weight:bold;margin:8px">🪙 0</div><button class="menu-action" id="shopBtn">🪙 POWER-UP SHOP</button><div id="shopPanel" class="menu-panel hidden"></div><button class="menu-action" id="settingsBtn" type="button">⚙ PENGATURAN</button>
 <button class="menu-action" id="helpBtn" type="button">❔ CARA MAIN</button>
 <div id="settingsPanel" class="menu-panel hidden"><label><input id="motionToggle" type="checkbox" checked> Animasi stickman di menu</label></div>
 <div id="helpPanel" class="menu-panel hidden"><p>◀ ▶ untuk bergerak. JUMP untuk melompat. Tekan arah menuju tembok + JUMP saat grab untuk memanjat.</p><p>Lewati portal, jembatan runtuh, monster, dan semburan uap menuju FINISH.</p><p>PC: ← → / A D dan Spasi / ↑.</p></div>
 </div>
-<div id="gameOverMenu" class="hidden"><p>Hardcore: perjalanan berakhir. Coba lagi dari menu utama.</p><button class="menu-action primary" id="gameOverHome" type="button">⌂ MENU UTAMA</button></div><div id="endMenu" class="hidden"><p id="message">Semua rintangan berhasil dilewati!</p><button id="again">MAIN LAGI</button></div>
+<div id="gameOverMenu" class="hidden"><p>Hardcore: perjalanan berakhir. Coba lagi dari menu utama.</p><button class="menu-action primary" id="gameOverHome" type="button">⌂ MENU UTAMA</button></div><div id="endMenu" class="hidden"><p id="message">Semua rintangan berhasil dilewati!</p><button id="again">MAIN LAGI</button><button class="menu-action" id="finishHome">MENU UTAMA</button></div>
 </div></div>
 <script>
 (()=>{
 const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.getElementById('overlay'),status=document.getElementById('status'),progress=document.getElementById('progress');
 let W,H,scale,ground,camera=0,cameraY=0,active=false,paused=false,won=false,last=0,now=0,gameMode="normal";
-const keys={left:false,right:false,jump:false,duck:false};
+const prices={run:1,jump:2,ghost:3,teleport:5}, names={run:"Super Run",jump:"Super Jump",ghost:"Ghost",teleport:"Teleport"};let wallet={coins:0,owned:[],selected:"none"};try{const saved=JSON.parse(localStorage.getItem("stickmanPowerV1"));if(saved&&Array.isArray(saved.owned))wallet=saved}catch(e){} let usedAdmin=false,powerUntil=0,powerReady=0;const saveWallet=()=>{try{localStorage.setItem("stickmanPowerV1",JSON.stringify(wallet))}catch(e){}};const hasPower=k=>wallet.selected===k&&wallet.owned.includes(k);const ghost=()=>hasPower("ghost")&&now<powerUntil;const keys={left:false,right:false,jump:false,duck:false};
 const world=8300,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
 let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss,chase,lava;
 const bossSprite=new Image();bossSprite.src='monster.svg?v=d3ead88';
@@ -87,7 +87,7 @@ p.climb={block:b,startX:p.x,startY:p.y,targetX:target.x,targetY:target.y,elapsed
 p.grab=null;p.vx=p.vy=0;p.grounded=false;
 status.textContent='MEMANJAT!';return;
 }
-if(p.grounded){p.grounded=false;p.vy=-JUMP;status.textContent='JUMP!'}
+if(p.grounded){p.grounded=false;p.vy=-JUMP*(hasPower("jump")?1.45:1);status.textContent='JUMP!'}
 }
 function input(k,down){
 const wasDown=keys[k];keys[k]=down;
@@ -109,15 +109,16 @@ const setMode=mode=>{gameMode=mode;for(const [id,value] of [['modeNormal','norma
 document.getElementById('modeNormal').onclick=()=>setMode('normal');
 document.getElementById('modeHardcore').onclick=()=>setMode('hardcore');
 const showMainMenu=()=>{closePause();clearInput();active=false;won=false;showPauseButton(false);document.getElementById('title').textContent='STICKMAN PARKOUR';document.getElementById('mainMenu').classList.remove('hidden');document.getElementById('endMenu').classList.add('hidden');document.getElementById('gameOverMenu').classList.add('hidden');overlay.classList.remove('hidden');reset()};
-const startGame=()=>{document.getElementById('gameOverMenu').classList.add('hidden');closePause();showPauseButton(true);document.getElementById('title').textContent='STICKMAN PARKOUR';document.getElementById('mainMenu').classList.remove('hidden');document.getElementById('endMenu').classList.add('hidden');resize();reset();active=true;overlay.classList.add('hidden');last=performance.now()};
+const startGame=()=>{usedAdmin=false;powerUntil=powerReady=0;document.getElementById("powerBtn").classList.toggle("hidden",!hasPower("ghost")&&!hasPower("teleport"));document.getElementById('gameOverMenu').classList.add('hidden');closePause();showPauseButton(true);document.getElementById('title').textContent='STICKMAN PARKOUR';document.getElementById('mainMenu').classList.remove('hidden');document.getElementById('endMenu').classList.add('hidden');resize();reset();active=true;overlay.classList.add('hidden');last=performance.now()};
 document.getElementById('start').onclick=startGame;
 document.getElementById('again').onclick=startGame;
 document.getElementById('gameOverHome').onclick=showMainMenu;
 pauseBtn.onclick=()=>{if(!active||paused)return;paused=true;clearInput();pauseScreen.classList.remove('hidden')};
 document.getElementById('resumeBtn').onclick=()=>{if(!active)return;clearInput();closePause();last=performance.now()};
-document.getElementById('adminBtn').onclick=()=>document.getElementById('adminPanel').classList.toggle('hidden');
+document.getElementById('adminBtn').onclick=()=>wallet.owned.length?null:document.getElementById('adminPanel').classList.toggle('hidden');
 document.querySelectorAll('[data-teleport]').forEach(button=>button.onclick=()=>{
- if(!active||!paused)return;
+ if(!active||!paused||wallet.owned.length)return;
+ usedAdmin=true;
  const area=button.dataset.teleport;
  reset();
  const destinations={parkour:60,portal:3370,platform:3860,bridge:platforms[2].x+15,boss:boss.x-540,lava:lava.start-120};
@@ -131,14 +132,15 @@ document.querySelectorAll('[data-teleport]').forEach(button=>button.onclick=()=>
  clearInput();closePause();last=performance.now();
 });
 document.getElementById('restartBtn').onclick=startGame;
-document.getElementById('homeBtn').onclick=showMainMenu;
+document.getElementById('homeBtn').onclick=showMainMenu;document.getElementById('finishHome').onclick=showMainMenu;
+function renderShop(){document.getElementById('coinBalance').textContent='🪙 '+wallet.coins;document.getElementById('adminBtn').classList.toggle('hidden',wallet.owned.length>0);document.getElementById('adminPanel').classList.add('hidden');const panel=document.getElementById('shopPanel');panel.replaceChildren();for(const k of Object.keys(prices)){const b=document.createElement('button');b.className='menu-action';const owned=wallet.owned.includes(k);b.textContent=names[k]+' — '+(owned?(wallet.selected===k?'AKTIF':'PAKAI'):prices[k]+' 🪙');b.disabled=!owned&&wallet.coins<prices[k];b.onclick=()=>{if(!owned){if(wallet.coins<prices[k])return;if(!wallet.owned.length&&!confirm('Membeli power-up akan mengunci ADMIN permanen. Lanjut?'))return;wallet.coins-=prices[k];wallet.owned.push(k)}wallet.selected=k;saveWallet();renderShop()};panel.append(b)}const off=document.createElement('button');off.className='menu-action';off.textContent='Tanpa power-up';off.onclick=()=>{wallet.selected='none';saveWallet();renderShop()};panel.append(off)}document.getElementById('shopBtn').onclick=()=>{renderShop();document.getElementById('shopPanel').classList.toggle('hidden')};document.getElementById('powerBtn').onclick=()=>{if(!active||paused||now<powerReady)return;if(hasPower('ghost')){powerUntil=now+3;powerReady=now+8;status.textContent='GHOST!'}else if(hasPower('teleport')){const x=Math.max(0,Math.min(world-p.w,p.x+p.face*160));if((x<3300&&p.x<3300)||(x>3800&&p.x>3800)){if(!blocks.some(b=>rectHit({...p,x}, {x:b.x,y:ground-b.h,w:b.w,h:b.h}))&&!(x+p.w>boss.x&&x<boss.x+boss.w&&!boss.down)){p.x=x;p.grab=p.climb=null;powerReady=now+5;status.textContent='TELEPORT!'}}}};renderShop();
 document.getElementById('settingsBtn').onclick=()=>{document.getElementById('settingsPanel').classList.toggle('hidden');document.getElementById('helpPanel').classList.add('hidden')};
 document.getElementById('helpBtn').onclick=()=>{document.getElementById('helpPanel').classList.toggle('hidden');document.getElementById('settingsPanel').classList.add('hidden')};
 document.getElementById('motionToggle').onchange=e=>{document.querySelectorAll('.menu-scene .menu-limbs,.menu-scene .menu-ground').forEach(el=>el.style.animationPlayState=e.target.checked?'running':'paused')};
 function fail(){if(gameMode==="hardcore"){active=false;clearInput();showPauseButton(false);document.getElementById("title").textContent="GAME OVER";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("endMenu").classList.add("hidden");document.getElementById("gameOverMenu").classList.remove("hidden");overlay.classList.remove("hidden");return;}if(chase){chase.active=false;chase.done=false;chase.started=false;lava.x=lava.start-lava.w;lava.moving=false;}if(boss){boss.fireballs=[];boss.beam=null;boss.cooldown=1.2;}for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function tick(dt){
-now+=dt;
+now+=dt;const pb=document.getElementById("powerBtn");pb.textContent=now<powerReady?Math.ceil(powerReady-now)+"s":hasPower("ghost")?"GHOST":"TELEPORT";
 // Boss arena: a telegraphed electric beam at standing head height.
 const inArena=p.x>boss.x-650&&p.x<boss.x+boss.w+50;
 document.getElementById('duck').style.display=inArena?'block':'none';
@@ -209,7 +211,7 @@ else status.textContent='GRAB '+p.hold.toFixed(2)+'s · JUMP!';
 const oldX=p.x,oldY=p.y;
 p.wallLock=Math.max(0,p.wallLock-dt);
 p.wallGrace=Math.max(0,p.wallGrace-dt);
-p.vx=((keys.right?1:0)-(keys.left?1:0))*SPEED*(keys.duck&&p.grounded?.25:1);
+p.vx=((keys.right?1:0)-(keys.left?1:0))*SPEED*(hasPower("run")&&!(chase.active&&p.x>=lava.start-35&&p.x<lava.end)?1.6:1)*(keys.duck&&p.grounded?.25:1);
 if(p.vx)p.face=Math.sign(p.vx);
 if(p.grounded&&p.vx)p.runPhase+=Math.abs(p.vx)*dt*.060;
 p.x=Math.max(0,Math.min(world-p.w,p.x+p.vx*dt));
@@ -244,7 +246,7 @@ const top=ground-b.h;
 if(p.x+p.w>b.x&&p.x<b.x+b.w){
 if(oldY+p.h<=top+7&&p.y+p.h>=top&&p.vy>=0){p.y=top-p.h;p.vy=0;p.grounded=true}
 else if(oldY>=ground&&p.y<=ground){} 
-else if(p.y<ground&&p.y+p.h>top){
+else if(!ghost()&&p.y<ground&&p.y+p.h>top){
 if(oldX+p.w<=b.x+4&&p.vx>0){p.x=b.x-p.w;
 const handY=p.y+12;
 if(p.vy<120&&Math.abs(handY-top)<34){p.grab=b;p.hold=HOLD;p.y=top-12;p.vy=0;status.textContent='GRAB!'}
@@ -291,10 +293,10 @@ if(p.x+p.w>boss.x&&p.x<boss.x+boss.w){
   if(p.vy>=0&&p.y+p.h<=bossTop+Math.max(12,p.vy*dt+7)&&p.y+p.h>=bossTop){p.y=bossTop-p.h;p.vy=0;p.grounded=true;}
  }else if(p.y+p.h>bossTop){p.x=Math.min(p.x,boss.x-p.w);}
 }
-for(const h of hazards)if(rectHit(p,h)){fail();return}
-for(const spike of spikes)if(rectHit(p,spike)){fail();return}
-if(p.y>H+150)fail();
-if(p.x>world-135&&chase.started){active=false;showPauseButton(false);won=true;document.getElementById('title').textContent='FINISH! 🏁';document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati.';document.getElementById('mainMenu').classList.add('hidden');document.getElementById('endMenu').classList.remove('hidden');overlay.classList.remove('hidden')}
+for(const h of hazards)if(!ghost()&&rectHit(p,h)){fail();return}
+for(const spike of spikes)if(!ghost()&&rectHit(p,spike)){fail();return}
+if(p.y>H+150){fail();return;}
+if(p.x>world-135&&chase.started){active=false;showPauseButton(false);won=true;const reward=gameMode==="hardcore"&&!usedAdmin?3:1;wallet.coins+=reward;saveWallet();renderShop();document.getElementById('title').textContent='FINISH! 🏁';document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati. +'+reward+' 🪙';document.getElementById('mainMenu').classList.add('hidden');document.getElementById('endMenu').classList.remove('hidden');overlay.classList.remove('hidden')}
 // The spike course uses a safe respawn spot just before the hazard.
 if(chase.started)checkpoint=lava.start-180;else if(p.x>5300)checkpoint=5260;else if(p.x>4390)checkpoint=4360;
 else if(p.x>3950)checkpoint=3900;
