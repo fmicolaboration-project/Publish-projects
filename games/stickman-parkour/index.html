@@ -343,7 +343,7 @@ ctx.save();ctx.beginPath();ctx.rect(lava.start,ground,lava.end-lava.start,H+120)
 for(let row=0;row<4;row++){ctx.strokeStyle=row===0?'#ffdb55':'#ffac28';ctx.globalAlpha=row===0?1:.45;ctx.lineWidth=row===0?5:2;ctx.beginPath();for(let xx=lava.start;xx<=lava.end+12;xx+=12){const yy=lavaTop+row*21+Math.sin(xx*.035+now*2+row)*4;if(xx===lava.start)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}ctx.stroke();}
 for(let j=0;j<42;j++){const xx=lava.start+(j*137)%(lava.end-lava.start),phase=(now*.55+j*.37)%1;ctx.globalAlpha=Math.sin(phase*Math.PI)*.8;ctx.fillStyle='#ffd05b';ctx.beginPath();ctx.arc(xx,lavaTop+18+Math.sin(j*8)*9-phase*18,2+phase*4,0,Math.PI*2);ctx.fill();}
 ctx.restore();
-if(chase.started){ctx.fillStyle='#343b50';ctx.fillRect(lava.x,ground,lava.w,18);ctx.fillStyle='#b4c9d5';ctx.fillRect(lava.x,ground,lava.w,5);ctx.fillStyle='#f5a23d';for(let xx=lava.x+8;xx<lava.x+lava.w-5;xx+=20)ctx.fillRect(xx,ground+9,9,4);}
+if(chase.started){ctx.save();ctx.translate(lava.x+lava.w/2,ground+Math.sin(now*3.2)*3);ctx.rotate(Math.sin(now*2.4)*.045);ctx.fillStyle='#343b50';ctx.fillRect(-lava.w/2,0,lava.w,18);ctx.fillStyle='#b4c9d5';ctx.fillRect(-lava.w/2,0,lava.w,5);ctx.fillStyle='#f5a23d';for(let xx=-lava.w/2+8;xx<lava.w/2-5;xx+=20)ctx.fillRect(xx,9,9,4);ctx.restore();}
 
 for(const wall of towers){
 ctx.fillStyle='#3b5e78';ctx.fillRect(wall.x,wall.top,wall.w,wall.bottom-wall.top);
@@ -451,6 +451,8 @@ if(p.x>boss.x-750&&!chase.started){
  }
  ctx.restore();
 }
+const raftVisualOffset=chase.started&&p.grounded&&p.x+p.w/2>=lava.start&&p.x+p.w/2<lava.end&&p.x+p.w/2>=lava.x&&p.x+p.w/2<=lava.x+lava.w?Math.sin(now*3.2)*3+Math.sin(now*2.4)*.045*(p.x+p.w/2-lava.x-lava.w/2):0;
+ctx.save();ctx.translate(0,raftVisualOffset);
 const x=p.x+p.w/2,y=p.y,face=p.face;
 const ducking=keys.duck&&p.grounded&&p.x>boss.x-650;
 if(ducking){ctx.save();ctx.translate(x,p.y+p.h);ctx.scale(1,.45);ctx.translate(-x,-(p.y+p.h));}
@@ -493,6 +495,7 @@ ctx.stroke();
 if(p.grab){ctx.strokeStyle='#7ff9c9';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y+10,18,-Math.PI*.8,-Math.PI*.2);ctx.stroke()}
 ctx.restore(); // Character scale
 if(ducking)ctx.restore();
+ctx.restore(); // Raft visual offset
 ctx.restore(); // World camera
 }
 const menuRunner=document.getElementById('menuRunner');
