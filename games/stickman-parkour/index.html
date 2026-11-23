@@ -34,7 +34,7 @@ const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.
 let W,H,scale,ground,camera=0,cameraY=0,active=false,paused=false,won=false,last=0,now=0,gameMode="normal";
 const keys={left:false,right:false,jump:false,duck:false};
 const world=8300,GRAV=1700,SPEED=250,JUMP=610,HOLD=.7,CLIMB_TIME=.28;
-let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss,chase,vents;
+let p,blocks,platforms,bridgePlanks,spikes,hazards,checkpoint,towers,portals,boss,chase,lava;
 const bossSprite=new Image();bossSprite.src='monster.svg?v=d3ead88';
 const bossFallenSprite=new Image();bossFallenSprite.src='monster-fallen.svg?v=dbf3779';
 function resize(){W=innerWidth;H=innerHeight;const dpr=Math.min(devicePixelRatio||1,2);c.width=Math.round(W*dpr);c.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);ground=H-(H>W?105:115)}
@@ -63,7 +63,7 @@ bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-85,trigge
 spikes=[{x:3970,w:350,y:ground-27,h:27},{x:4510,w:530,y:ground-27,h:27}];
 hazards=[{x:1110,y:0,w:38,h:38,base:ground-110,amp:58,speed:2.3,phase:0},{x:2110,y:0,w:42,h:42,base:ground-120,amp:68,speed:1.8,phase:2},{x:2860,y:0,w:40,h:40,base:ground-105,amp:55,speed:2.6,phase:1}];
 boss={x:5710,w:Math.max(140,Math.min(W*.72,420)),h:Math.max(90,Math.min(H*.36,W*.72/1.8)),shots:0,limit:7+Math.floor(Math.random()*4),cooldown:1.1,downUntil:0,down:false,defeated:false,fireballs:[],mouth:0,beam:null,headTilt:0};
-chase={active:false,done:false,started:false};vents=Array.from({length:5},(_,i)=>({x:6280+i*335,w:76,phase:i*.78}));checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
+chase={active:false,done:false,started:false};lava={start:Math.max(6300,boss.x+boss.w+180),end:8000,x:0,w:gameMode==="hardcore"?100:155,moving:false};lava.x=lava.start-lava.w;checkpoint=60;camera=0;cameraY=0;won=false;now=0;status.textContent='LARI & LOMPAT';
 }
 function jump(){
 if(!active||p.climb||keys.duck)return;
@@ -118,7 +118,7 @@ document.getElementById('homeBtn').onclick=showMainMenu;
 document.getElementById('settingsBtn').onclick=()=>{document.getElementById('settingsPanel').classList.toggle('hidden');document.getElementById('helpPanel').classList.add('hidden')};
 document.getElementById('helpBtn').onclick=()=>{document.getElementById('helpPanel').classList.toggle('hidden');document.getElementById('settingsPanel').classList.add('hidden')};
 document.getElementById('motionToggle').onchange=e=>{document.querySelectorAll('.menu-scene .menu-limbs,.menu-scene .menu-ground').forEach(el=>el.style.animationPlayState=e.target.checked?'running':'paused')};
-function fail(){if(gameMode==="hardcore"){active=false;clearInput();showPauseButton(false);document.getElementById("title").textContent="GAME OVER";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("endMenu").classList.add("hidden");document.getElementById("gameOverMenu").classList.remove("hidden");overlay.classList.remove("hidden");return;}if(chase){chase.active=false;chase.done=false;chase.started=false;}if(boss){boss.fireballs=[];boss.beam=null;boss.cooldown=1.2;}for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
+function fail(){if(gameMode==="hardcore"){active=false;clearInput();showPauseButton(false);document.getElementById("title").textContent="GAME OVER";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("endMenu").classList.add("hidden");document.getElementById("gameOverMenu").classList.remove("hidden");overlay.classList.remove("hidden");return;}if(chase){chase.active=false;chase.done=false;chase.started=false;lava.x=lava.start-lava.w;lava.moving=false;}if(boss){boss.fireballs=[];boss.beam=null;boss.cooldown=1.2;}for(const plank of bridgePlanks)plank.triggerAt=null;p.w=23;p.h=54;p.portalStage=0;p.x=checkpoint;p.y=ground-p.h;p.vx=p.vy=0;p.grounded=true;p.grab=null;p.climb=null;p.wallDir=0;p.wallJumps=0;p.wallLock=0;p.wallGrace=0;status.textContent='JATUH! COBA LAGI';}
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function tick(dt){
 now+=dt;
@@ -157,18 +157,13 @@ if(inArena&&!won){
   }
  }
 }
-// Steam vents replace the final laser corridor after the defeated boss.
+// Final crossing: the raft moves independently of the player.
 if(!chase.started&&boss.defeated&&p.x>boss.x+boss.w+45){
- chase.started=true;chase.active=true;status.textContent='SEMBURAN UAP! TUNGGU / LOMPAT!';
+ chase.started=true;chase.active=true;status.textContent='LAUTAN LAVA! NAIK PLATFORM!';
 }
 if(chase.active){
- for(const vent of vents){
-  const cycle=((now*(gameMode==="hardcore"?1.5:1))+vent.phase)%3.5;
-  const erupting=cycle>=1.45&&cycle<2.45;
-  if(!erupting)continue;
-  // Hot steam reaches well above the player's jump height.
-  if(rectHit(p,{x:vent.x+6,y:ground-180,w:vent.w-12,h:180})){fail();return;}
- }
+ if(!lava.moving&&p.x+p.w/2>=lava.start-35&&p.x+p.w/2<lava.start&&p.grounded)lava.moving=true;
+ if(lava.moving)lava.x=Math.min(lava.end,lava.x+SPEED*dt);
 }
 // Planks activate left-to-right once the player reaches the bridge.
 // Each breaks 0.4 seconds after its own activation.
@@ -248,7 +243,11 @@ status.textContent='JEMBATAN RUNTUH! TERUS LARI!';
 }
 }
 }
-if(p.y+p.h>=ground){p.y=ground-p.h;p.vy=0;p.grounded=true}
+const overLava=p.x+p.w/2>=lava.start&&p.x+p.w/2<lava.end;
+const onRaft=chase.started&&p.x+p.w/2>=lava.x&&p.x+p.w/2<=lava.x+lava.w;
+if(p.y+p.h>=ground&&(!overLava||onRaft)){p.y=ground-p.h;p.vy=0;p.grounded=true;}
+if(overLava&&!onRaft&&p.y+p.h>=ground+22){fail();return;}
+if(overLava&&onRaft&&p.grounded)status.textContent='TERUS MAJU! JANGAN BERHENTI!';
 if(p.grounded){p.wallDir=0;p.wallGrace=0;if(p.x<3300)p.wallJumps=0;}
 if(p.wallDir&&p.wallLock===0&&!p.grounded&&p.vy>0)status.textContent='WALL SLIDE · OPPOSIT + JUMP';
 }
@@ -275,7 +274,7 @@ for(const spike of spikes)if(rectHit(p,spike)){fail();return}
 if(p.y>H+150)fail();
 if(p.x>world-135&&chase.started){active=false;showPauseButton(false);won=true;document.getElementById('title').textContent='FINISH! 🏁';document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati.';document.getElementById('mainMenu').classList.add('hidden');document.getElementById('endMenu').classList.remove('hidden');overlay.classList.remove('hidden')}
 // The spike course uses a safe respawn spot just before the hazard.
-if(chase.started)checkpoint=Math.max(checkpoint,boss.x+boss.w+75);else if(p.x>5300)checkpoint=5260;else if(p.x>4390)checkpoint=4360;
+if(chase.started)checkpoint=lava.start-180;else if(p.x>5300)checkpoint=5260;else if(p.x>4390)checkpoint=4360;
 else if(p.x>3950)checkpoint=3900;
 else if(p.x>3250)checkpoint=3220;
 else if(p.x>checkpoint+500){
@@ -336,6 +335,16 @@ if(p.x>boss.x-750){
  }
 }
 ctx.fillStyle='#73cfac';ctx.fillRect(0,ground,world,7);
+const lavaTop=ground+22;
+ctx.fillStyle='#202333';ctx.fillRect(lava.start,ground,lava.end-lava.start,22);
+const magma=ctx.createLinearGradient(0,lavaTop,0,lavaTop+110);magma.addColorStop(0,'#ff9d16');magma.addColorStop(.35,'#f54b12');magma.addColorStop(1,'#8d160c');
+ctx.fillStyle=magma;ctx.fillRect(lava.start,lavaTop,lava.end-lava.start,H+120);
+ctx.save();ctx.beginPath();ctx.rect(lava.start,ground,lava.end-lava.start,H+120);ctx.clip();
+for(let row=0;row<4;row++){ctx.strokeStyle=row===0?'#ffdb55':'#ffac28';ctx.globalAlpha=row===0?1:.45;ctx.lineWidth=row===0?5:2;ctx.beginPath();for(let xx=lava.start;xx<=lava.end+12;xx+=12){const yy=lavaTop+row*21+Math.sin(xx*.035+now*2+row)*4;if(xx===lava.start)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}ctx.stroke();}
+for(let j=0;j<42;j++){const xx=lava.start+(j*137)%(lava.end-lava.start),phase=(now*.55+j*.37)%1;ctx.globalAlpha=Math.sin(phase*Math.PI)*.8;ctx.fillStyle='#ffd05b';ctx.beginPath();ctx.arc(xx,lavaTop+18+Math.sin(j*8)*9-phase*18,2+phase*4,0,Math.PI*2);ctx.fill();}
+ctx.restore();
+if(chase.started){ctx.fillStyle='#343b50';ctx.fillRect(lava.x,ground,lava.w,18);ctx.fillStyle='#b4c9d5';ctx.fillRect(lava.x,ground,lava.w,5);ctx.fillStyle='#f5a23d';for(let xx=lava.x+8;xx<lava.x+lava.w-5;xx+=20)ctx.fillRect(xx,ground+9,9,4);}
+
 for(const wall of towers){
 ctx.fillStyle='#3b5e78';ctx.fillRect(wall.x,wall.top,wall.w,wall.bottom-wall.top);
 ctx.fillStyle='#86cdd0';ctx.fillRect(wall.x,wall.top,wall.w,9);
@@ -428,30 +437,6 @@ if(boss.beam&&!boss.down){
   ctx.stroke();
  }
  ctx.restore();
-}
-// Animated steam vents: idle, thin warning mist, then tall hot plume.
-if(chase.started){
- for(const vent of vents){
-  const cycle=(now+vent.phase)%3.5;
-  const warning=cycle>=.95&&cycle<1.45;
-  const erupting=cycle>=1.45&&cycle<2.45;
-  ctx.fillStyle='#303b49';ctx.fillRect(vent.x-6,ground-8,vent.w+12,9);
-  ctx.fillStyle=erupting?'#ff9b42':warning?'#f6b96b':'#64727d';
-  for(let k=0;k<5;k++)ctx.fillRect(vent.x+6+k*(vent.w-12)/5,ground-7,(vent.w-12)/10,6);
-  if(warning||erupting){
-   ctx.save();
-   ctx.globalAlpha=erupting?.86:.35;
-   const plumeH=erupting?180:40;
-   for(let k=0;k<9;k++){
-    const h=plumeH*(k+1)/10;
-    const sway=Math.sin(now*7+k*1.7)*10;
-    const width=erupting?20+Math.sin(k*2.2)*6:9;
-    ctx.fillStyle=k%2?'#eaf4ff':'#b6d3e3';
-    ctx.beginPath();ctx.ellipse(vent.x+vent.w/2+sway,ground-h,width,erupting?22:9,0,0,Math.PI*2);ctx.fill();
-   }
-   ctx.restore();
-  }
- }
 }
 if(chase.started){ctx.fillStyle='#f4d477';ctx.fillRect(world-100,ground-210,7,210);ctx.fillStyle='#67e2ba';ctx.fillRect(world-93,ground-210,80,45);}
 // Boss health display and attack warning.
