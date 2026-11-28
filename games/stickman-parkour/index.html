@@ -205,7 +205,7 @@ if(chase.active){
 }
 // Planks activate left-to-right once the player reaches the bridge.
 // Each breaks 0.4 seconds after its own activation.
-for(const h of hazards)h.y=h.base+Math.sin(hazardTime*h.speed*(gameMode==="hardcore"?1.6:1)+h.phase)*h.amp;
+for(const h of hazards){if(rainbow&&h.x<1500){const phase=(hazardTime*(gameMode==="hardcore"?1.35:1)+h.phase)%3.4;h.warning=phase<.8;h.y=phase<.8?ground-310:ground-310+Math.min(1,(phase-.8)/.85)*330;h.off=phase<.8||phase>1.65;}else h.y=h.base+Math.sin(hazardTime*h.speed*(gameMode==="hardcore"?1.6:1)+h.phase)*h.amp;}
 if(p.climb){
 const climb=p.climb;
 climb.elapsed+=dt;
@@ -308,7 +308,7 @@ if(p.x+p.w>boss.x&&p.x<boss.x+boss.w){
   if(p.vy>=0&&p.y+p.h<=bossTop+Math.max(12,p.vy*dt+7)&&p.y+p.h>=bossTop){p.y=bossTop-p.h;p.vy=0;p.grounded=true;}
  }else if(rainbow&&p.vy>0&&p.y+p.h>=bossTop&&p.y+p.h<=bossTop+Math.max(12,p.vy*dt+7)){if(!boss.hitAt||now>boss.hitAt){boss.prismHP--;boss.hitAt=now+3;boss.beam=null;boss.cooldown=3;status.textContent="PRISM WORM HP "+boss.prismHP;if(boss.prismHP<=0){boss.down=true;boss.defeated=true;boss.downUntil=now+7;}}p.vy=-480;}else if(p.y+p.h>bossTop){p.x=Math.min(p.x,boss.x-p.w);}
 }
-for(const h of hazards)if(!ghost()&&rectHit(p,h)){fail();return}
+for(const h of hazards)if(!h.off&&!ghost()&&rectHit(p,h)){fail();return}
 for(const spike of spikes)if(!ghost()&&rectHit(p,spike)){fail();return}
 if(p.y>H+150){fail();return;}
 if(p.x>world-135&&chase.started){if(!infinityTest){rainbowUnlocked=true;localStorage.setItem("rainbowUnlocked","1");document.getElementById("rainbowMenu").classList.remove("hidden");document.getElementById("rainbowGo").classList.remove("hidden");}active=false;showPauseButton(false);won=true;const reward=infinityTest?0:gameMode==="hardcore"&&!usedAdmin?3:1;sound("coin");wallet.coins+=reward;saveWallet();renderShop();document.getElementById('title').textContent=rainbow?'RAINBOW LAND COMPLETE!':'FINISH! 🏁';if(rainbow)document.getElementById('rainbowGo').classList.add('hidden');document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati. +'+reward+' 🪙';document.getElementById('mainMenu').classList.add('hidden');document.getElementById('endMenu').classList.remove('hidden');overlay.classList.remove('hidden')}
@@ -376,8 +376,9 @@ if(hardcore){
  }
 }
 ctx.globalAlpha=1;
-if(rainbow){for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=7;ctx.beginPath();ctx.arc(W*.65,H*.8,Math.max(20,H*.55-i*8),Math.PI,2*Math.PI);ctx.stroke();}ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.fillText("WORLD 2 • SIX ZONES V4",12,65);ctx.fillText(p.x<1500?"1. CRYSTAL CAVE":p.x<3000?"2. CLOUD KINGDOM":p.x<4300?"3. GRAVITY ZONE":p.x<5500?"4. RAINBOW STORM":p.x<lava.start?"5. PRISM WORM":"6. RAINBOW WATERFALL",12,85);}
+if(rainbow){for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=7;ctx.beginPath();ctx.arc(W*.65,H*.8,Math.max(20,H*.55-i*8),Math.PI,2*Math.PI);ctx.stroke();}ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.fillText("WORLD 2 • CRYSTAL CAVE V5",12,65);ctx.fillText(p.x<1500?"1. CRYSTAL CAVE":p.x<3000?"2. CLOUD KINGDOM":p.x<4300?"3. GRAVITY ZONE":p.x<5500?"4. RAINBOW STORM":p.x<lava.start?"5. PRISM WORM":"6. RAINBOW WATERFALL",12,85);}
 ctx.save();ctx.translate(-camera,cameraY);
+if(rainbow&&p.x<1500){ctx.fillStyle="#17142f";ctx.fillRect(0,-H,1500,ground+H);for(let i=0;i<19;i++){let x=i*85;ctx.fillStyle="#392951";ctx.beginPath();ctx.moveTo(x,-H);ctx.lineTo(x+85,-H);ctx.lineTo(x+65,ground-310-(i%3)*35);ctx.lineTo(x+25,ground-350);ctx.closePath();ctx.fill();}for(let i=0;i<24;i++){let x=i*65+15,y=ground-15-(i%4)*12;ctx.save();ctx.translate(x,y);ctx.fillStyle=rainbowColors[i%7];ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=16;ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(-9,-40-(i%3)*16);ctx.lineTo(4,-62-(i%3)*16);ctx.lineTo(17,-30);ctx.lineTo(12,0);ctx.closePath();ctx.fill();ctx.restore();}}
 ctx.fillStyle=rainbow?'#553579':hardcore?'#742322':'#345969';ctx.fillRect(0,ground,world,H-ground);
 if(p.x>boss.x-750){
  ctx.fillStyle=hardcore?'#591b20':'#34304c';ctx.fillRect(boss.x-750,ground,1400,Math.max(0,H-ground));
@@ -449,7 +450,7 @@ const sx=spike.x+i*step;
 ctx.beginPath();ctx.moveTo(sx,ground);ctx.lineTo(sx+step/2,spike.y);ctx.lineTo(sx+step,ground);ctx.closePath();ctx.fill();
 }
 }
-for(const h of hazards){ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
+for(const h of hazards){if(rainbow&&h.x<1500){if(h.warning){ctx.fillStyle="#ffdb66";ctx.globalAlpha=.35+.3*Math.sin(now*20);ctx.fillRect(h.x,ground-310,h.w,310);ctx.globalAlpha=1;}if(!h.off||h.warning){ctx.save();ctx.translate(h.x+h.w/2,h.y);ctx.shadowColor="#69f9ff";ctx.shadowBlur=14;ctx.fillStyle="#71eaff";ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(h.w/2,10);ctx.lineTo(0,h.h);ctx.lineTo(-h.w/2,10);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle="#fff";ctx.stroke();ctx.restore();}continue;}ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
 // Preserve the actual SVG intrinsic aspect ratio in both upright and fallen states.
 ctx.save();
 const bodySprite=rainbow?prismSprite:hardcore?thermalSprite:bossSprite,fallenSprite=rainbow?prismSprite:hardcore?thermalFallenSprite:bossFallenSprite;
