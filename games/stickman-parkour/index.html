@@ -245,7 +245,7 @@ if(Math.abs(p.x-(wall.x+wall.w))<3&&keys.left)touching=-1;
 if(touching&&p.wallLock===0){
 p.wallDir=touching;p.wallGrace=.20;
 }else if(p.wallGrace<=0)p.wallDir=0;
-p.vy+=GRAV*dt;if(hasPower("jet")&&now<until("jet"))p.vy=keys.jump?-260:0;
+p.vy+=GRAV*dt;if(rainbow&&p.x>3400&&p.x<3800){p.vy-=GRAV*1.7*dt;if(p.y<ground-190){p.y=ground-190;p.vy=0;}}if(hasPower("jet")&&now<until("jet"))p.vy=keys.jump?-260:0;
 // Slide slowly down a wall while pressing toward it; wall jumps still launch upward.
 if(touching&&!p.grounded&&p.wallLock===0&&p.vy>110){p.vy=110;status.textContent='WALL SLIDE · OPPOSIT + JUMP';}
 p.y+=p.vy*dt;p.grounded=false;
@@ -270,6 +270,7 @@ if(p.vy<120&&Math.abs(handY-top)<34){p.grab=b;p.hold=HOLD;p.y=top-12;p.vy=0;stat
 }
 // Land on solid floating platforms or still-intact bridge planks from above.
 for(const platform of [...platforms,...bridgePlanks.filter(plank=>plank.triggerAt===null||now-plank.triggerAt<(gameMode==="hardcore"?.26:.4))]){
+if(rainbow&&platform.cloud&&Math.sin(now*1.5+platform.x*.01)>.92)continue;
 if(p.vy>=0&&oldY+p.h<=platform.y+6&&p.y+p.h>=platform.y&&p.x+p.w>platform.x&&p.x<platform.x+platform.w){
 p.y=platform.y-p.h;p.vy=0;p.grounded=true;
 // The first touched plank starts a staggered collapse wave toward the right.
@@ -292,7 +293,7 @@ if(p.wallDir&&p.wallLock===0&&!p.grounded&&p.vy>0)status.textContent='WALL SLIDE
 if(p.grab){p.x=p.face===1?p.grab.x-p.w:p.x}
 // Touch portals by walking or jumping through them. Preserve the feet position
 // when resizing, and keep the next portal inactive until the first was used.
-if(p.portalStage===0&&rectHit(p,portals[0])){
+if(!rainbow&&p.portalStage===0&&rectHit(p,portals[0])){
 const feet=p.y+p.h;p.w=38;p.h=89;p.y=feet-p.h;
 p.portalStage=1;status.textContent='PORTAL BESAR! WALL JUMP 5X';
 }else if(p.portalStage===1&&rectHit(p,portals[1])){
@@ -331,7 +332,7 @@ const hardcore=gameMode==="hardcore";
 ctx.clearRect(0,0,W,H);
 const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,rainbow?"#493088":hardcore?'#31090f':'#14263d');sky.addColorStop(1,rainbow?"#d391e8":hardcore?'#a42b20':'#284b5a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
 // Moonlit ruined-city backdrop for the boss encounter only.
-if(p.x>boss.x-750){
+if(!rainbow&&p.x>boss.x-750){
  const moonX=W*.43,moonY=H*.25,moonR=Math.min(90,H*.23);
  const glow=ctx.createRadialGradient(moonX,moonY,moonR*.35,moonX,moonY,moonR*2.3);
  glow.addColorStop(0,hardcore?'#ff725555':'#d5b5e655');glow.addColorStop(1,hardcore?'#ff725500':'#d5b5e600');
@@ -375,7 +376,7 @@ if(hardcore){
  }
 }
 ctx.globalAlpha=1;
-if(rainbow){for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=7;ctx.beginPath();ctx.arc(W*.65,H*.8,Math.max(20,H*.55-i*8),Math.PI,2*Math.PI);ctx.stroke();}ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.fillText("WORLD 2 • CRYSTAL QUEST V3",12,65);}
+if(rainbow){for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=7;ctx.beginPath();ctx.arc(W*.65,H*.8,Math.max(20,H*.55-i*8),Math.PI,2*Math.PI);ctx.stroke();}ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.fillText("WORLD 2 • SIX ZONES V4",12,65);ctx.fillText(p.x<1500?"1. CRYSTAL CAVE":p.x<3000?"2. CLOUD KINGDOM":p.x<4300?"3. GRAVITY ZONE":p.x<5500?"4. RAINBOW STORM":p.x<lava.start?"5. PRISM WORM":"6. RAINBOW WATERFALL",12,85);}
 ctx.save();ctx.translate(-camera,cameraY);
 ctx.fillStyle=rainbow?'#553579':hardcore?'#742322':'#345969';ctx.fillRect(0,ground,world,H-ground);
 if(p.x>boss.x-750){
@@ -391,7 +392,7 @@ if(p.x>boss.x-750){
 ctx.fillStyle=hardcore?'#ff5545':'#73cfac';ctx.fillRect(0,ground,world,7);if(rainbow)for(let x=0;x<world;x+=70){ctx.fillStyle=rainbowColors[Math.floor(x/70)%7];ctx.fillRect(x,ground,70,8);}
 const lavaTop=ground+22;
 ctx.fillStyle='#202333';ctx.fillRect(lava.start,ground,lava.end-lava.start,22);
-const magma=ctx.createLinearGradient(0,lavaTop,0,lavaTop+110);magma.addColorStop(0,'#ff9d16');magma.addColorStop(.35,'#f54b12');magma.addColorStop(1,'#8d160c');
+const magma=ctx.createLinearGradient(0,lavaTop,0,lavaTop+110);if(rainbow){magma.addColorStop(0,"#67efff");magma.addColorStop(.5,"#8b68ff");magma.addColorStop(1,"#f77bdf");}else{magma.addColorStop(0,'#ff9d16');magma.addColorStop(.35,'#f54b12');magma.addColorStop(1,'#8d160c');}
 ctx.fillStyle=magma;ctx.fillRect(lava.start,lavaTop,lava.end-lava.start,H+120);
 ctx.save();ctx.beginPath();ctx.rect(lava.start,ground,lava.end-lava.start,H+120);ctx.clip();
 for(let row=0;row<4;row++){ctx.strokeStyle=row===0?'#ffdb55':'#ffac28';ctx.globalAlpha=row===0?1:.45;ctx.lineWidth=row===0?5:2;ctx.beginPath();for(let xx=lava.start;xx<=lava.end+12;xx+=12){const yy=lavaTop+row*21+Math.sin(xx*.035+now*2+row)*4;if(xx===lava.start)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}ctx.stroke();}
@@ -421,6 +422,7 @@ ctx.restore();
 for(const b of blocks){const y=ground-b.h;ctx.fillStyle=rainbow?rainbowColors[Math.floor(b.x/100)%7]:'#3f6581';ctx.fillRect(b.x,y,b.w,b.h);ctx.fillStyle=rainbow?'#ffffff':'#91d6cf';ctx.fillRect(b.x,y,b.w,9);ctx.fillStyle='#233f58';for(let a=b.x+14;a<b.x+b.w-5;a+=30)ctx.fillRect(a,y+23,14,5)}
 // Draw suspended platforms and the finish bridge.
 for(const platform of platforms){
+if(rainbow&&platform.cloud){if(Math.sin(now*1.5+platform.x*.01)>.92)continue;ctx.fillStyle='#f9efff';for(let i=0;i<4;i++){ctx.beginPath();ctx.ellipse(platform.x+15+i*25,platform.y+8,20,12,0,0,Math.PI*2);ctx.fill();}continue;}
 ctx.fillStyle='#577899';ctx.fillRect(platform.x,platform.y,platform.w,16);
 ctx.fillStyle='#a4f5de';ctx.fillRect(platform.x,platform.y,platform.w,6);
 ctx.fillStyle='#2a425c';for(let px=platform.x+13;px<platform.x+platform.w-8;px+=25)ctx.fillRect(px,platform.y+10,12,4);
@@ -559,7 +561,7 @@ const rainbowColors=["#ff455d","#ff9d38","#ffe15a","#45e68a","#35caff","#8866ff"
 const rainbowPlatforms=Array.from({length:12},(_,i)=>({x:220+i*210,y:65+(i%3)*35,w:135,cloud:i>=7&&i<=9}));const rainbowGaps=[[720,830],[1150,1270],[1750,1870],[2190,2310]];const rainbowSpikes=[460,980,1450,2000,2470];let bridgeAt=0;function rainbowFail(){if(gameMode==="hardcore"&&!(hasPower("life")&&!lifeUsed)){active=false;showPauseButton(false);document.getElementById("title").textContent="GAME OVER";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("gameOverMenu").classList.remove("hidden");overlay.classList.remove("hidden");}else{if(gameMode==="hardcore")lifeUsed=true;rp.x=rp.x>2600?2600:rp.x>1900?1900:rp.x>1300?1300:50;rp.y=ground-54;rp.v=0;rp.grounded=true;bridgeAt=0;}}
 document.getElementById("rainbowMenu").classList.remove("hidden");
 function rainbowStart(){startGame();rainbow=true;rainbowLayout();document.body.classList.add("rainbow-theme");rp={x:50,y:ground-54,v:0,grounded:true};rhp=3;bridgeAt=0;rt=0;ri=0;hitTime=0;shotTime=0;shots=[];prevJump=false;rocketStart=0;status.textContent="WORLD 2 — RAINBOW LAND";}
-function rainbowLayout(){blocks=[{x:280,w:100,h:75},{x:470,w:100,h:140},{x:760,w:160,h:80},{x:1100,w:100,h:155},{x:1370,w:100,h:60},{x:1640,w:120,h:125},{x:2010,w:130,h:150},{x:2390,w:100,h:75},{x:2700,w:140,h:145},{x:3060,w:100,h:80}];hazards=[{x:650,w:36,h:36,base:ground-100,amp:70,speed:2.2,phase:0},{x:1530,w:36,h:36,base:ground-85,amp:65,speed:2.8,phase:1},{x:2240,w:38,h:38,base:ground-110,amp:70,speed:2.4,phase:2},{x:2930,w:35,h:35,base:ground-90,amp:60,speed:3,phase:0}];platforms=[{x:3980,w:125,y:ground-65},{x:4140,w:145,y:ground-110},{x:4400,w:130,y:ground-100},{x:5030,w:150,y:ground-100}];bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-100,triggerAt:null}));boss.limit=3;boss.prismHP=3;boss.h=95;boss.cooldown=1.5;}
+function rainbowLayout(){blocks=[{x:350,w:90,h:60},{x:850,w:100,h:100},{x:1250,w:100,h:65},{x:2950,w:100,h:80},{x:5450,w:110,h:55}];towers=[];portals=[{x:3400,y:ground-100,w:45,h:100,kind:'grow'},{x:3800,y:ground-100,w:45,h:100,kind:'restore'}];hazards=[{x:560,w:34,h:40,base:ground-100,amp:90,speed:2.1,phase:0},{x:1050,w:35,h:40,base:ground-100,amp:90,speed:2.5,phase:2},{x:4680,w:24,h:90,base:ground-100,amp:100,speed:2,phase:1},{x:5050,w:24,h:90,base:ground-100,amp:100,speed:2.6,phase:2}];platforms=Array.from({length:10},(_,i)=>({x:1550+i*125,w:110,y:ground-55-(i%3)*20,cloud:true}));platforms.push({x:4400,w:130,y:ground-65},{x:5030,w:130,y:ground-65});bridgePlanks=[];spikes=[{x:1580,w:1120,y:ground-22,h:22}];boss.limit=3;boss.prismHP=3;boss.h=75;boss.cooldown=1.5;}
 function launchRainbow(){closePause();clearInput();active=false;overlay.classList.add("hidden");rocketStart=performance.now();document.getElementById("rocketSkip").classList.remove("hidden");}
 document.getElementById("rainbowGo").onclick=launchRainbow;document.getElementById("rainbowMenu").onclick=launchRainbow;
 document.getElementById("rocketSkip").onclick=()=>{document.getElementById("rocketSkip").classList.add("hidden");rainbowStart();};
