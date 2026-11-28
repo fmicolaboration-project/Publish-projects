@@ -517,44 +517,7 @@ ctx.save();ctx.translate(0,raftVisualOffset);
 const x=p.x+p.w/2,y=p.y,face=p.face;
 const ducking=keys.duck&&p.grounded&&p.x>boss.x-650;
 if(ducking){ctx.save();ctx.translate(x,p.y+p.h);ctx.scale(1,.45);ctx.translate(-x,-(p.y+p.h));}
-// Stick-figure art remains proportional to the actual collision box.
-ctx.save();ctx.translate(x,y);ctx.scale(p.h/54,p.h/54);ctx.translate(-x,-y);
-const running=p.grounded&&!p.grab&&!p.climb&&Math.abs(p.vx)>1;
-const stride=running?Math.sin(p.runPhase):0;
-const arm=running?Math.sin(p.runPhase):0;
-const line=(x1,y1,x2,y2)=>{ctx.moveTo(x1,y1);ctx.lineTo(x2,y2)};
-ctx.strokeStyle='#f6f7fa';ctx.lineWidth=4;ctx.lineCap='round';
-ctx.beginPath();ctx.arc(x,y+10,9,0,Math.PI*2);ctx.stroke();
-ctx.beginPath();line(x,y+20,x,y+39);
-if(p.grab){
-const edge=p.grab.x;
-line(x,y+26,edge,y+2);line(x,y+29,edge,y+2);
-line(x,y+39,x-9,y+49);line(x,y+39,x+9,y+49);
-}else if(p.climb){
-const edge=p.climb.block.x;
-line(x,y+26,edge,y+1);line(x,y+28,edge+9,y+1);
-line(x,y+39,x-9,y+52);line(x,y+39,x+9,y+52);
-}else if(!p.grounded){
-const lift=p.vy<0?-1:1;
-line(x,y+26,x-12*face,y+24+lift*4);
-line(x,y+26,x+13*face,y+24+lift*4);
-line(x,y+39,x-12*face,y+49);
-line(x,y+39,x+12*face,y+51);
-}else if(running){
-const swing=12*stride;
-line(x,y+26,x-11*face+arm*14*face,y+34);
-line(x,y+26,x+11*face-arm*14*face,y+34);
-line(x,y+39,x+swing*face,y+47);
-line(x+swing*face,y+47,x+swing*face+6*face,y+54-Math.max(0,stride)*5);
-line(x,y+39,x-swing*face,y+47);
-line(x-swing*face,y+47,x-swing*face-6*face,y+54-Math.max(0,-stride)*5);
-}else{
-line(x,y+26,x-11*face,y+36);line(x,y+26,x+11*face,y+36);
-line(x,y+39,x-10,y+54);line(x,y+39,x+10,y+54);
-}
-ctx.stroke();
-if(p.grab){ctx.strokeStyle='#7ff9c9';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y+10,18,-Math.PI*.8,-Math.PI*.2);ctx.stroke()}
-ctx.restore(); // Character scale
+drawStick(p,x,y,face);
 if(ducking)ctx.restore();
 ctx.restore(); // Raft visual offset
 ctx.restore(); // World camera
@@ -598,8 +561,48 @@ function rainbowStart(){startGame();rainbow=true;document.body.classList.add("ra
 function launchRainbow(){closePause();clearInput();active=false;overlay.classList.add("hidden");rocketStart=performance.now();document.getElementById("rocketSkip").classList.remove("hidden");}
 document.getElementById("rainbowGo").onclick=launchRainbow;document.getElementById("rainbowMenu").onclick=launchRainbow;
 document.getElementById("rocketSkip").onclick=()=>{document.getElementById("rocketSkip").classList.add("hidden");rainbowStart();};
-function rainbowTick(dt){rt+=dt;const bx=3100,by=ground-105;if(rp.x>2600&&ri===0){ri=rt+3;clearInput();}if(ri>rt)return;const old=rp.y+54;rp.x=Math.max(0,Math.min(3850,rp.x+((keys.right?1:0)-(keys.left?1:0))*dt*(hasPower("run")?400:250)));if(keys.jump&&!prevJump&&rp.grounded){rp.v=-610;rp.grounded=false;}prevJump=keys.jump;if(hasPower("jet")&&now<until("jet")&&keys.jump)rp.v=-320;now+=dt;rp.v+=1700*dt;rp.y+=rp.v*dt;rp.grounded=false;for(const b of rainbowPlatforms){const y=ground-b.y;if(rp.x+23>b.x&&rp.x<b.x+b.w&&old<=y&&rp.y+54>=y&&rp.v>=0){rp.y=y-54;rp.v=0;rp.grounded=true;}}if(rhp&&rt>hitTime&&rp.x+23>bx-50&&rp.x<bx+65&&old<=by&&rp.y+54>=by&&rp.v>0){rhp--;hitTime=rt+3;rp.v=-480;status.textContent=rhp?"PRISM WORM — "+rhp+" HP":"BOSS DEFEATED!";}if(rp.y+54>=ground){rp.y=ground-54;rp.v=0;rp.grounded=true;}if(ri&&rt>ri&&rhp&&rt>hitTime&&rt>shotTime){shotTime=rt+(gameMode==="hardcore"?1.1:2);shots.push({x:bx-50,y:ground-32});}for(const q of shots){q.x-=dt*300;if(Math.abs(q.x-rp.x)<22&&Math.abs(q.y-rp.y-27)<30){q.x=-1000;if(hasPower("life")&&!lifeUsed){lifeUsed=true;rp.x=2700;}else if(gameMode==="hardcore"){active=false;showPauseButton(false);document.getElementById("title").textContent="GAME OVER";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("gameOverMenu").classList.remove("hidden");overlay.classList.remove("hidden");}else rp.x=2600;}}shots=shots.filter(q=>q.x>0);if(rhp&&rp.x>bx+90)rp.x=bx+90;if(!rhp&&rp.x>3700){active=false;won=true;showPauseButton(false);const reward=infinityTest?0:gameMode==="hardcore"?3:1;wallet.coins+=reward;saveWallet();renderShop();document.getElementById("title").textContent="RAINBOW LAND COMPLETE!";document.getElementById("message").textContent="+"+reward+" 🪙";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("endMenu").classList.remove("hidden");document.getElementById("rainbowGo").classList.add("hidden");overlay.classList.remove("hidden");}}
-function rainbowDraw(){const cam=Math.max(0,rp.x-W*.3),g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#8a71ef");g.addColorStop(1,"#ffe2fa");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=9;ctx.beginPath();ctx.arc(W*.7,H*.8,Math.max(30,H*.55-i*10),Math.PI,2*Math.PI);ctx.stroke();}ctx.save();ctx.translate(-cam,0);for(let i=0;i<40;i++){ctx.fillStyle=rainbowColors[i%7];ctx.fillRect(i*100,ground,100,H-ground);}for(const [i,b] of rainbowPlatforms.entries()){ctx.fillStyle=rainbowColors[i%7];ctx.fillRect(b.x,ground-b.y,b.w,18);}if(rhp&&ri){const rise=Math.max(0,Math.min(1,1-(ri-rt)/3));ctx.save();ctx.translate(0,(1-rise)*160);for(let i=6;i>=0;i--){ctx.fillStyle=rainbowColors[i];ctx.beginPath();ctx.ellipse(3100+i*22,ground-65+i*8,35,42,0,0,Math.PI*2);ctx.fill();}ctx.fillStyle="#29113f";ctx.beginPath();ctx.ellipse(3100,ground-65,33,35,0,0,Math.PI*2);ctx.fill();for(let i=0;i<12;i++){ctx.save();ctx.translate(3100,ground-65);ctx.rotate(i*Math.PI/6);ctx.fillStyle="white";ctx.beginPath();ctx.moveTo(-5,-31);ctx.lineTo(5,-31);ctx.lineTo(0,-15);ctx.fill();ctx.restore();}ctx.restore();}for(const q of shots){ctx.fillStyle="#ff28cf";ctx.beginPath();ctx.arc(q.x,q.y,12,0,Math.PI*2);ctx.fill();}ctx.strokeStyle="#172039";ctx.lineWidth=4;ctx.beginPath();ctx.arc(rp.x+12,rp.y+9,8,0,Math.PI*2);ctx.moveTo(rp.x+12,rp.y+18);ctx.lineTo(rp.x+12,rp.y+36);ctx.lineTo(rp.x,rp.y+54);ctx.moveTo(rp.x+12,rp.y+36);ctx.lineTo(rp.x+24,rp.y+54);ctx.moveTo(rp.x,rp.y+25);ctx.lineTo(rp.x+24,rp.y+25);ctx.stroke();ctx.restore();if(ri&&rhp){ctx.fillStyle="#35194c";ctx.fillRect(W*.2,55,W*.6,30);ctx.fillStyle="#fff";ctx.font="bold 16px sans-serif";ctx.fillText("PRISM WORM  "+"♥".repeat(rhp),W*.25,76);}}
+function rainbowTick(dt){rt+=dt;const bx=3100,by=ground-105;if(rp.x>2600&&ri===0){ri=rt+3;clearInput();}if(ri>rt)return;const old=rp.y+54;rp.vx=((keys.right?1:0)-(keys.left?1:0))*250;if(rp.vx)rp.face=Math.sign(rp.vx);rp.runPhase=(rp.runPhase||0)+dt*14;rp.x=Math.max(0,Math.min(3850,rp.x+((keys.right?1:0)-(keys.left?1:0))*dt*(hasPower("run")?400:250)));if(keys.jump&&!prevJump&&rp.grounded){rp.v=-610;rp.grounded=false;}prevJump=keys.jump;if(hasPower("jet")&&now<until("jet")&&keys.jump)rp.v=-320;now+=dt;rp.v+=1700*dt;rp.y+=rp.v*dt;rp.grounded=false;for(const b of rainbowPlatforms){const y=ground-b.y;if(rp.x+23>b.x&&rp.x<b.x+b.w&&old<=y&&rp.y+54>=y&&rp.v>=0){rp.y=y-54;rp.v=0;rp.grounded=true;}}if(rhp&&rt>hitTime&&rp.x+23>bx-50&&rp.x<bx+65&&old<=by&&rp.y+54>=by&&rp.v>0){rhp--;hitTime=rt+3;rp.v=-480;status.textContent=rhp?"PRISM WORM — "+rhp+" HP":"BOSS DEFEATED!";}if(rp.y+54>=ground){rp.y=ground-54;rp.v=0;rp.grounded=true;}if(ri&&rt>ri&&rhp&&rt>hitTime&&rt>shotTime){shotTime=rt+(gameMode==="hardcore"?1.1:2);shots.push({x:bx-50,y:ground-32});}for(const q of shots){q.x-=dt*300;if(Math.abs(q.x-rp.x)<22&&Math.abs(q.y-rp.y-27)<30){q.x=-1000;if(hasPower("life")&&!lifeUsed){lifeUsed=true;rp.x=2700;}else if(gameMode==="hardcore"){active=false;showPauseButton(false);document.getElementById("title").textContent="GAME OVER";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("gameOverMenu").classList.remove("hidden");overlay.classList.remove("hidden");}else rp.x=2600;}}shots=shots.filter(q=>q.x>0);if(rhp&&rp.x>bx+90)rp.x=bx+90;if(!rhp&&rp.x>3700){active=false;won=true;showPauseButton(false);const reward=infinityTest?0:gameMode==="hardcore"?3:1;wallet.coins+=reward;saveWallet();renderShop();document.getElementById("title").textContent="RAINBOW LAND COMPLETE!";document.getElementById("message").textContent="+"+reward+" 🪙";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("endMenu").classList.remove("hidden");document.getElementById("rainbowGo").classList.add("hidden");overlay.classList.remove("hidden");}}
+function drawStick(p,x,y,face){
+// Stick-figure art remains proportional to the actual collision box.
+ctx.save();ctx.translate(x,y);ctx.scale(p.h/54,p.h/54);ctx.translate(-x,-y);
+const running=p.grounded&&!p.grab&&!p.climb&&Math.abs(p.vx)>1;
+const stride=running?Math.sin(p.runPhase):0;
+const arm=running?Math.sin(p.runPhase):0;
+const line=(x1,y1,x2,y2)=>{ctx.moveTo(x1,y1);ctx.lineTo(x2,y2)};
+ctx.strokeStyle='#f6f7fa';ctx.lineWidth=4;ctx.lineCap='round';
+ctx.beginPath();ctx.arc(x,y+10,9,0,Math.PI*2);ctx.stroke();
+ctx.beginPath();line(x,y+20,x,y+39);
+if(p.grab){
+const edge=p.grab.x;
+line(x,y+26,edge,y+2);line(x,y+29,edge,y+2);
+line(x,y+39,x-9,y+49);line(x,y+39,x+9,y+49);
+}else if(p.climb){
+const edge=p.climb.block.x;
+line(x,y+26,edge,y+1);line(x,y+28,edge+9,y+1);
+line(x,y+39,x-9,y+52);line(x,y+39,x+9,y+52);
+}else if(!p.grounded){
+const lift=p.vy<0?-1:1;
+line(x,y+26,x-12*face,y+24+lift*4);
+line(x,y+26,x+13*face,y+24+lift*4);
+line(x,y+39,x-12*face,y+49);
+line(x,y+39,x+12*face,y+51);
+}else if(running){
+const swing=12*stride;
+line(x,y+26,x-11*face+arm*14*face,y+34);
+line(x,y+26,x+11*face-arm*14*face,y+34);
+line(x,y+39,x+swing*face,y+47);
+line(x+swing*face,y+47,x+swing*face+6*face,y+54-Math.max(0,stride)*5);
+line(x,y+39,x-swing*face,y+47);
+line(x-swing*face,y+47,x-swing*face-6*face,y+54-Math.max(0,-stride)*5);
+}else{
+line(x,y+26,x-11*face,y+36);line(x,y+26,x+11*face,y+36);
+line(x,y+39,x-10,y+54);line(x,y+39,x+10,y+54);
+}
+ctx.stroke();
+if(p.grab){ctx.strokeStyle='#7ff9c9';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y+10,18,-Math.PI*.8,-Math.PI*.2);ctx.stroke()}
+ctx.restore(); // Character scale
+}
+function rainbowDraw(){const cam=Math.max(0,rp.x-W*.3),g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#8a71ef");g.addColorStop(1,"#ffe2fa");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=9;ctx.beginPath();ctx.arc(W*.7,H*.8,Math.max(30,H*.55-i*10),Math.PI,2*Math.PI);ctx.stroke();}ctx.save();ctx.translate(-cam,0);for(let i=0;i<40;i++){ctx.fillStyle=rainbowColors[i%7];ctx.fillRect(i*100,ground,100,H-ground);}for(const [i,b] of rainbowPlatforms.entries()){ctx.fillStyle=rainbowColors[i%7];ctx.fillRect(b.x,ground-b.y,b.w,18);}if(rhp&&ri){const rise=Math.max(0,Math.min(1,1-(ri-rt)/3));ctx.save();ctx.translate(0,(1-rise)*160);for(let i=6;i>=0;i--){ctx.fillStyle=rainbowColors[i];ctx.beginPath();ctx.ellipse(3100+i*22,ground-65+i*8,35,42,0,0,Math.PI*2);ctx.fill();}ctx.fillStyle="#29113f";ctx.beginPath();ctx.ellipse(3100,ground-65,33,35,0,0,Math.PI*2);ctx.fill();for(let i=0;i<12;i++){ctx.save();ctx.translate(3100,ground-65);ctx.rotate(i*Math.PI/6);ctx.fillStyle="white";ctx.beginPath();ctx.moveTo(-5,-31);ctx.lineTo(5,-31);ctx.lineTo(0,-15);ctx.fill();ctx.restore();}ctx.restore();}for(const q of shots){ctx.fillStyle="#ff28cf";ctx.beginPath();ctx.arc(q.x,q.y,12,0,Math.PI*2);ctx.fill();}drawStick({x:rp.x,y:rp.y,w:23,h:54,grounded:rp.grounded,vx:rp.vx||0,vy:rp.v,runPhase:rp.runPhase||0,grab:null,climb:null},rp.x+11.5,rp.y,rp.face||1);if(hasPower("jet")&&now<until("jet")&&keys.jump){ctx.fillStyle="#ffae35";ctx.beginPath();ctx.moveTo(rp.x+2,rp.y+35);ctx.lineTo(rp.x+12,rp.y+70+Math.sin(now*40)*8);ctx.lineTo(rp.x+22,rp.y+35);ctx.fill();}ctx.restore();if(ri&&rhp){ctx.fillStyle="#35194c";ctx.fillRect(W*.2,55,W*.6,30);ctx.fillStyle="#fff";ctx.font="bold 16px sans-serif";ctx.fillText("PRISM WORM  "+"♥".repeat(rhp),W*.25,76);}}
 function rocketDraw(t){const u=Math.min(1,(t-rocketStart)/8000);ctx.fillStyle="#10122f";ctx.fillRect(0,0,W,H);for(let i=0;i<80;i++){ctx.fillStyle="#fff";ctx.fillRect((i*97)%W,((i*53+t*.15)%H),2,2);}for(let i=0;i<7;i++){ctx.fillStyle=rainbowColors[i];ctx.beginPath();ctx.arc(W*.75,H*.25,Math.max(1,(25+u*65)*(1-i*.12)),0,Math.PI*2);ctx.fill();}ctx.font="65px sans-serif";ctx.fillText("🚀",W*(.1+u*.45),H*(.8-u*.5));ctx.font="bold 20px sans-serif";ctx.fillStyle="white";ctx.fillText("TO RAINBOW LAND",20,40);if(u>=1){document.getElementById("rocketSkip").classList.add("hidden");rainbowStart();}}
 function loop(t){try{musicUpdate()}catch(e){audioStatus.textContent='MUSIC ERROR: '+e.message;audioEnabled=false;audioToggle.textContent='🔊 AKTIFKAN MUSIK';}animateMenu(t);let dt=Math.min(.032,(t-last)/1000||0);last=t;if(rocketStart){rocketDraw(t);}else if(rainbow){if(active&&!paused)rainbowTick(dt);rainbowDraw();}else{if(active&&!paused)tick(dt);draw();if(godIntro>0){ctx.fillStyle="#0009";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff";ctx.font="bold 28px sans-serif";ctx.fillText("GODZILLA ARRIVES!",20,H*.4);}}requestAnimationFrame(loop)}
 reset();requestAnimationFrame(loop);
