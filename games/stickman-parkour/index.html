@@ -20,7 +20,7 @@
 <path d="M107 59 L113 79"/>
 <g class="menu-limbs"><path d="M110 66 L92 75 M110 66 L128 57 M113 79 L98 100 M113 79 L133 98"/></g>
 </g></svg>
-<button id="rainbowMenu" class="menu-action hidden">🌈 RAINBOW LAND</button><div class="mode-picker" role="group" aria-label="Pilih mode permainan"><button type="button" id="modeNormal" class="mode-choice selected" aria-pressed="true">NORMAL</button><button type="button" id="modeHardcore" class="mode-choice" aria-pressed="false">HARDCORE</button></div><button class="menu-action primary" id="start">▶ MULAI MAIN</button>
+<button id="rainbowMenu" class="menu-action">🌈 GO TO RAINBOW LAND 🚀</button><div class="mode-picker" role="group" aria-label="Pilih mode permainan"><button type="button" id="modeNormal" class="mode-choice selected" aria-pressed="true">NORMAL</button><button type="button" id="modeHardcore" class="mode-choice" aria-pressed="false">HARDCORE</button></div><button class="menu-action primary" id="start">▶ MULAI MAIN</button>
 <div id="coinBalance" style="color:#ffd36a;font-weight:bold;margin:8px">🪙 0</div><button class="menu-action" id="shopBtn">🪙 POWER-UP SHOP</button><button class="menu-action" id="mergeBtn">⚗ SUPERPOWER MERGE</button><button class="menu-action" id="settingsBtn" type="button">⚙ PENGATURAN</button>
 <button class="menu-action" id="helpBtn" type="button">❔ CARA MAIN</button>
 
@@ -593,7 +593,7 @@ function animateMenu(t){
 let rainbow=false,rocketStart=0,godIntro=0,godSeen=false,rainbowUnlocked=localStorage.getItem("rainbowUnlocked")==="1",rp,rhp,rt,ri,hitTime,shotTime,shots,prevJump=false;
 const rainbowColors=["#ff455d","#ff9d38","#ffe15a","#45e68a","#35caff","#8866ff","#f36de9"];
 const rainbowPlatforms=Array.from({length:12},(_,i)=>({x:220+i*210,y:65+(i%3)*45,w:135}));
-document.getElementById("rainbowMenu").classList.toggle("hidden",!rainbowUnlocked);
+document.getElementById("rainbowMenu").classList.remove("hidden");
 function rainbowStart(){startGame();rainbow=true;document.body.classList.add("rainbow-theme");rp={x:50,y:ground-54,v:0,grounded:true};rhp=3;rt=0;ri=0;hitTime=0;shotTime=0;shots=[];prevJump=false;rocketStart=0;status.textContent="WORLD 2 — RAINBOW LAND";}
 function launchRainbow(){closePause();clearInput();active=false;overlay.classList.add("hidden");rocketStart=performance.now();document.getElementById("rocketSkip").classList.remove("hidden");}
 document.getElementById("rainbowGo").onclick=launchRainbow;document.getElementById("rainbowMenu").onclick=launchRainbow;
