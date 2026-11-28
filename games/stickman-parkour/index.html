@@ -176,7 +176,7 @@ if(inArena&&!won){
    sound("attack");boss.beam={elapsed:0};
    boss.mouth=.85;
    boss.shots++;
-   boss.cooldown=1.35;
+   boss.cooldown=rainbow?(boss.prismHP===1?.8:boss.prismHP===2?1.1:1.6):1.35;
   }
   if(gameMode==="hardcore"&&boss.beam&&boss.beam.elapsed>.55){
  const radius=(boss.beam.elapsed-.55)*1100;
@@ -189,7 +189,7 @@ if(inArena&&!won){
    const ducking=keys.duck&&p.grounded;
    if(!ducking&&p.x+p.w>boss.x-900&&p.x<boss.x+boss.w&&p.y<beamY+8&&p.y+p.h>beamY-8){fail();return;}
   }
-  if(boss.shots>=boss.limit&&!boss.beam){
+  if(!rainbow&&boss.shots>=boss.limit&&!boss.beam){
    boss.down=true;boss.defeated=true;boss.downUntil=now+7;
    status.textContent='MONSTER ROBOH! 7 DETIK!';
   }
@@ -305,7 +305,7 @@ const bossTop=ground-(boss.down?55:boss.h);
 if(p.x+p.w>boss.x&&p.x<boss.x+boss.w){
  if(boss.down){
   if(p.vy>=0&&p.y+p.h<=bossTop+Math.max(12,p.vy*dt+7)&&p.y+p.h>=bossTop){p.y=bossTop-p.h;p.vy=0;p.grounded=true;}
- }else if(p.y+p.h>bossTop){p.x=Math.min(p.x,boss.x-p.w);}
+ }else if(rainbow&&p.vy>0&&p.y+p.h>=bossTop&&p.y+p.h<=bossTop+Math.max(12,p.vy*dt+7)){if(!boss.hitAt||now>boss.hitAt){boss.prismHP--;boss.hitAt=now+3;boss.beam=null;boss.cooldown=3;status.textContent="PRISM WORM HP "+boss.prismHP;if(boss.prismHP<=0){boss.down=true;boss.defeated=true;boss.downUntil=now+7;}}p.vy=-480;}else if(p.y+p.h>bossTop){p.x=Math.min(p.x,boss.x-p.w);}
 }
 for(const h of hazards)if(!ghost()&&rectHit(p,h)){fail();return}
 for(const spike of spikes)if(!ghost()&&rectHit(p,spike)){fail();return}
@@ -375,7 +375,7 @@ if(hardcore){
  }
 }
 ctx.globalAlpha=1;
-if(rainbow){for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=7;ctx.beginPath();ctx.arc(W*.65,H*.8,Math.max(20,H*.55-i*8),Math.PI,2*Math.PI);ctx.stroke();}ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.fillText("WORLD 2 • ENGINE V2",12,65);}
+if(rainbow){for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=7;ctx.beginPath();ctx.arc(W*.65,H*.8,Math.max(20,H*.55-i*8),Math.PI,2*Math.PI);ctx.stroke();}ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.fillText("WORLD 2 • CRYSTAL QUEST V3",12,65);}
 ctx.save();ctx.translate(-camera,cameraY);
 ctx.fillStyle=rainbow?'#553579':hardcore?'#742322':'#345969';ctx.fillRect(0,ground,world,H-ground);
 if(p.x>boss.x-750){
@@ -418,7 +418,7 @@ ctx.fillStyle='#f8faff';ctx.textAlign='center';ctx.font='bold 12px system-ui';
 ctx.fillText(portal.kind==='grow'?'BESAR':'NORMAL',portal.x+portal.w/2,portal.y-14);
 ctx.restore();
 }
-for(const b of blocks){const y=ground-b.h;ctx.fillStyle='#3f6581';ctx.fillRect(b.x,y,b.w,b.h);ctx.fillStyle='#91d6cf';ctx.fillRect(b.x,y,b.w,9);ctx.fillStyle='#233f58';for(let a=b.x+14;a<b.x+b.w-5;a+=30)ctx.fillRect(a,y+23,14,5)}
+for(const b of blocks){const y=ground-b.h;ctx.fillStyle=rainbow?rainbowColors[Math.floor(b.x/100)%7]:'#3f6581';ctx.fillRect(b.x,y,b.w,b.h);ctx.fillStyle=rainbow?'#ffffff':'#91d6cf';ctx.fillRect(b.x,y,b.w,9);ctx.fillStyle='#233f58';for(let a=b.x+14;a<b.x+b.w-5;a+=30)ctx.fillRect(a,y+23,14,5)}
 // Draw suspended platforms and the finish bridge.
 for(const platform of platforms){
 ctx.fillStyle='#577899';ctx.fillRect(platform.x,platform.y,platform.w,16);
@@ -506,7 +506,7 @@ if(p.x>boss.x-750&&!chase.started){
  ctx.save();ctx.setTransform(c.width/W,0,0,c.height/H,0,0);
  const bx=W*.27,bw=W*.55;
  ctx.fillStyle='#0b0d18';ctx.fillRect(bx,16,bw,21);
- ctx.fillStyle='#f43d47';ctx.fillRect(bx+3,19,(bw-6)*Math.max(0,1-boss.shots/boss.limit),15);
+ ctx.fillStyle='#f43d47';ctx.fillRect(bx+3,19,(bw-6)*Math.max(0,rainbow?boss.prismHP/3:1-boss.shots/boss.limit),15);
  ctx.fillStyle='white';ctx.font='bold 19px system-ui';ctx.fillText(rainbow?'WORM':hardcore?'THERMO':'BOSS',bx-63,34);
  if(boss.beam&&boss.beam.elapsed<=(hardcore?.55:.38)){
   ctx.fillStyle='#ff5252';ctx.font='bold 28px system-ui';ctx.fillText(hardcore?'JUMP!':'⚠',W*.5,H*.55);
@@ -558,7 +558,8 @@ const prismSprite=new Image();prismSprite.src="data:image/svg+xml,"+encodeURICom
 const rainbowColors=["#ff455d","#ff9d38","#ffe15a","#45e68a","#35caff","#8866ff","#f36de9"];
 const rainbowPlatforms=Array.from({length:12},(_,i)=>({x:220+i*210,y:65+(i%3)*35,w:135,cloud:i>=7&&i<=9}));const rainbowGaps=[[720,830],[1150,1270],[1750,1870],[2190,2310]];const rainbowSpikes=[460,980,1450,2000,2470];let bridgeAt=0;function rainbowFail(){if(gameMode==="hardcore"&&!(hasPower("life")&&!lifeUsed)){active=false;showPauseButton(false);document.getElementById("title").textContent="GAME OVER";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("gameOverMenu").classList.remove("hidden");overlay.classList.remove("hidden");}else{if(gameMode==="hardcore")lifeUsed=true;rp.x=rp.x>2600?2600:rp.x>1900?1900:rp.x>1300?1300:50;rp.y=ground-54;rp.v=0;rp.grounded=true;bridgeAt=0;}}
 document.getElementById("rainbowMenu").classList.remove("hidden");
-function rainbowStart(){startGame();rainbow=true;document.body.classList.add("rainbow-theme");rp={x:50,y:ground-54,v:0,grounded:true};rhp=3;bridgeAt=0;rt=0;ri=0;hitTime=0;shotTime=0;shots=[];prevJump=false;rocketStart=0;status.textContent="WORLD 2 — RAINBOW LAND";}
+function rainbowStart(){startGame();rainbow=true;rainbowLayout();document.body.classList.add("rainbow-theme");rp={x:50,y:ground-54,v:0,grounded:true};rhp=3;bridgeAt=0;rt=0;ri=0;hitTime=0;shotTime=0;shots=[];prevJump=false;rocketStart=0;status.textContent="WORLD 2 — RAINBOW LAND";}
+function rainbowLayout(){blocks=[{x:280,w:100,h:75},{x:470,w:100,h:140},{x:760,w:160,h:80},{x:1100,w:100,h:155},{x:1370,w:100,h:60},{x:1640,w:120,h:125},{x:2010,w:130,h:150},{x:2390,w:100,h:75},{x:2700,w:140,h:145},{x:3060,w:100,h:80}];hazards=[{x:650,w:36,h:36,base:ground-100,amp:70,speed:2.2,phase:0},{x:1530,w:36,h:36,base:ground-85,amp:65,speed:2.8,phase:1},{x:2240,w:38,h:38,base:ground-110,amp:70,speed:2.4,phase:2},{x:2930,w:35,h:35,base:ground-90,amp:60,speed:3,phase:0}];platforms=[{x:3980,w:125,y:ground-65},{x:4140,w:145,y:ground-110},{x:4400,w:130,y:ground-100},{x:5030,w:150,y:ground-100}];bridgePlanks=Array.from({length:20},(_,i)=>({x:4530+i*25,w:23,y:ground-100,triggerAt:null}));boss.limit=3;boss.prismHP=3;boss.h=95;boss.cooldown=1.5;}
 function launchRainbow(){closePause();clearInput();active=false;overlay.classList.add("hidden");rocketStart=performance.now();document.getElementById("rocketSkip").classList.remove("hidden");}
 document.getElementById("rainbowGo").onclick=launchRainbow;document.getElementById("rainbowMenu").onclick=launchRainbow;
 document.getElementById("rocketSkip").onclick=()=>{document.getElementById("rocketSkip").classList.add("hidden");rainbowStart();};
