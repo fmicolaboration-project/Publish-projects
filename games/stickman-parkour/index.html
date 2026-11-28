@@ -131,7 +131,7 @@ document.querySelectorAll('[data-teleport]').forEach(button=>button.onclick=()=>
  document.getElementById('adminPanel').classList.add('hidden');
  clearInput();closePause();last=performance.now();
 });
-document.getElementById('restartBtn').onclick=startGame;
+document.getElementById('restartBtn').onclick=()=>rainbow?rainbowStart():startGame();
 document.getElementById('homeBtn').onclick=showMainMenu;document.getElementById('finishHome').onclick=showMainMenu;
 function renderShop(){document.getElementById('coinBalance').textContent='🪙 '+wallet.coins;document.getElementById('shopCoins').textContent='🪙 '+wallet.coins;document.getElementById('adminBtn').classList.toggle('hidden',(infinityTest||wallet.selected!=='none'));document.getElementById('adminPanel').classList.add('hidden');const panel=document.getElementById('shopPanel');panel.replaceChildren();for(const k of Object.keys(prices)){const b=document.createElement('button');const owned=wallet.owned.includes(k);b.classList.toggle('equipped',owned&&wallet.selected===k);const symbol=document.createElement('span');symbol.className='shop-symbol';symbol.textContent={run:'⚡',jump:'⬆️',ghost:'👻',teleport:'🌀',double:'🪽',shield:'🛡️',slow:'⏳',climber:'🧲',lava:'🌋',jet:'🚀',life:'❤️'}[k];const name=document.createElement('span');name.textContent=names[k];const price=document.createElement('span');price.className='shop-price';price.textContent=owned?(wallet.selected===k?'AKTIF':'PAKAI'):prices[k]+' 🪙';const desc=document.createElement('span');desc.className='shop-description';desc.textContent={run:'Lari 60% lebih cepat (kecuali saat menyeberang lava).',jump:'Lompatan 45% lebih kuat.',ghost:'Tembus rintangan tertentu selama 3 detik. Isi ulang 8 detik sejak aktivasi.',double:'Satu lompatan tambahan di udara.',teleport:'Pindah 160 piksel sesuai arah hadap. Isi ulang 5 detik.',shield:'Selamat dari satu kematian dan kembali ke checkpoint.',climber:'Pegangan tembok tanpa batas waktu.',slow:'Monster dan rintangan bergerak 50% lebih lambat selama 5 detik. Isi ulang 15 detik sejak aktivasi.',lava:'Berjalan di atas lava tanpa mati.',jet:'Tekan POWER, tahan JUMP untuk naik. Terbang 20 detik, cooldown 12 detik setelah selesai.',life:'Hidup kembali di checkpoint sekali per permainan, termasuk Hardcore.'}[k];b.append(symbol,name,desc,price);b.disabled=!owned&&wallet.coins<prices[k];b.onclick=()=>{if(!owned){if(wallet.coins<prices[k])return;wallet.coins-=prices[k];wallet.owned.push(k)}wallet.selected=k;saveWallet();renderShop()};panel.append(b)}document.getElementById('shopOff').textContent=wallet.selected==='none'?'✓ Tanpa power-up':'Tanpa power-up'}document.getElementById('shopBtn').onclick=()=>{renderShop();document.getElementById('shopScreen').classList.remove('hidden')};document.getElementById('shopBack').onclick=()=>document.getElementById('shopScreen').classList.add('hidden');document.getElementById('shopOff').onclick=()=>{wallet.selected='none';saveWallet();renderShop()};const activePowers=()=>infinityTest||wallet.selected==='infinity'?['jet']:['ghost','teleport','slow','jet'].filter(hasPower);
 function renderPowerButtons(){for(const [i,id] of ['powerBtn','powerBtn2','powerBtn3','powerBtn4'].entries()){const b=document.getElementById(id),k=activePowers()[i];b.classList.toggle('hidden',!k);b.textContent=k?names[k].toUpperCase():'POWER';}}
@@ -310,7 +310,7 @@ if(p.x+p.w>boss.x&&p.x<boss.x+boss.w){
 for(const h of hazards)if(!ghost()&&rectHit(p,h)){fail();return}
 for(const spike of spikes)if(!ghost()&&rectHit(p,spike)){fail();return}
 if(p.y>H+150){fail();return;}
-if(p.x>world-135&&chase.started){if(!infinityTest){rainbowUnlocked=true;localStorage.setItem("rainbowUnlocked","1");document.getElementById("rainbowMenu").classList.remove("hidden");document.getElementById("rainbowGo").classList.remove("hidden");}active=false;showPauseButton(false);won=true;const reward=infinityTest?0:gameMode==="hardcore"&&!usedAdmin?3:1;sound("coin");wallet.coins+=reward;saveWallet();renderShop();document.getElementById('title').textContent='FINISH! 🏁';document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati. +'+reward+' 🪙';document.getElementById('mainMenu').classList.add('hidden');document.getElementById('endMenu').classList.remove('hidden');overlay.classList.remove('hidden')}
+if(p.x>world-135&&chase.started){if(!infinityTest){rainbowUnlocked=true;localStorage.setItem("rainbowUnlocked","1");document.getElementById("rainbowMenu").classList.remove("hidden");document.getElementById("rainbowGo").classList.remove("hidden");}active=false;showPauseButton(false);won=true;const reward=infinityTest?0:gameMode==="hardcore"&&!usedAdmin?3:1;sound("coin");wallet.coins+=reward;saveWallet();renderShop();document.getElementById('title').textContent=rainbow?'RAINBOW LAND COMPLETE!':'FINISH! 🏁';if(rainbow)document.getElementById('rainbowGo').classList.add('hidden');document.getElementById('message').textContent='Keren! Semua rintangan berhasil dilewati. +'+reward+' 🪙';document.getElementById('mainMenu').classList.add('hidden');document.getElementById('endMenu').classList.remove('hidden');overlay.classList.remove('hidden')}
 // The spike course uses a safe respawn spot just before the hazard.
 if(chase.started)checkpoint=lava.start-180;else if(p.x>5300)checkpoint=5260;else if(p.x>4390)checkpoint=4360;
 else if(p.x>3950)checkpoint=3900;
@@ -329,7 +329,7 @@ progress.textContent=Math.floor(p.x/10)+' m';
 function draw(){
 const hardcore=gameMode==="hardcore";
 ctx.clearRect(0,0,W,H);
-const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,hardcore?'#31090f':'#14263d');sky.addColorStop(1,hardcore?'#a42b20':'#284b5a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,rainbow?"#493088":hardcore?'#31090f':'#14263d');sky.addColorStop(1,rainbow?"#d391e8":hardcore?'#a42b20':'#284b5a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
 // Moonlit ruined-city backdrop for the boss encounter only.
 if(p.x>boss.x-750){
  const moonX=W*.43,moonY=H*.25,moonR=Math.min(90,H*.23);
@@ -375,8 +375,9 @@ if(hardcore){
  }
 }
 ctx.globalAlpha=1;
+if(rainbow){for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=7;ctx.beginPath();ctx.arc(W*.65,H*.8,Math.max(20,H*.55-i*8),Math.PI,2*Math.PI);ctx.stroke();}ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.fillText("WORLD 2 • ENGINE V2",12,65);}
 ctx.save();ctx.translate(-camera,cameraY);
-ctx.fillStyle=hardcore?'#742322':'#345969';ctx.fillRect(0,ground,world,H-ground);
+ctx.fillStyle=rainbow?'#553579':hardcore?'#742322':'#345969';ctx.fillRect(0,ground,world,H-ground);
 if(p.x>boss.x-750){
  ctx.fillStyle=hardcore?'#591b20':'#34304c';ctx.fillRect(boss.x-750,ground,1400,Math.max(0,H-ground));
  ctx.strokeStyle=hardcore?'#a84a40':'#6c6882';ctx.lineWidth=2;
@@ -387,7 +388,7 @@ if(p.x>boss.x-750){
   }
  }
 }
-ctx.fillStyle=hardcore?'#ff5545':'#73cfac';ctx.fillRect(0,ground,world,7);
+ctx.fillStyle=hardcore?'#ff5545':'#73cfac';ctx.fillRect(0,ground,world,7);if(rainbow)for(let x=0;x<world;x+=70){ctx.fillStyle=rainbowColors[Math.floor(x/70)%7];ctx.fillRect(x,ground,70,8);}
 const lavaTop=ground+22;
 ctx.fillStyle='#202333';ctx.fillRect(lava.start,ground,lava.end-lava.start,22);
 const magma=ctx.createLinearGradient(0,lavaTop,0,lavaTop+110);magma.addColorStop(0,'#ff9d16');magma.addColorStop(.35,'#f54b12');magma.addColorStop(1,'#8d160c');
@@ -449,7 +450,7 @@ ctx.beginPath();ctx.moveTo(sx,ground);ctx.lineTo(sx+step/2,spike.y);ctx.lineTo(s
 for(const h of hazards){ctx.save();ctx.translate(h.x+h.w/2,h.y+h.h/2);ctx.rotate(now*1.8);ctx.fillStyle='#f17b7b';ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?16:27;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath();ctx.fill();ctx.fillStyle='#532c46';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.restore()}
 // Preserve the actual SVG intrinsic aspect ratio in both upright and fallen states.
 ctx.save();
-const bodySprite=hardcore?thermalSprite:bossSprite,fallenSprite=hardcore?thermalFallenSprite:bossFallenSprite;
+const bodySprite=rainbow?prismSprite:hardcore?thermalSprite:bossSprite,fallenSprite=rainbow?prismSprite:hardcore?thermalFallenSprite:bossFallenSprite;
 if(hardcore&&!boss.down){ctx.save();const cx=boss.x+boss.w*.35,cy=ground-boss.h*.45,r=boss.h*.95;const heat=ctx.createRadialGradient(cx,cy,0,cx,cy,r);heat.addColorStop(0,'rgba(255,80,10,.35)');heat.addColorStop(1,'rgba(255,30,0,0)');ctx.fillStyle=heat;ctx.fillRect(cx-r,cy-r,r*2,r*2);for(let i=0;i<(settings.particles?18:0);i++){const phase=(now*.8+i*.17)%1;ctx.fillStyle=i%2?'#ffb238':'#ff5422';ctx.globalAlpha=1-phase;ctx.beginPath();ctx.arc(boss.x+(i*47)%boss.w,ground-phase*boss.h,2,0,Math.PI*2);ctx.fill();}ctx.restore();ctx.shadowColor='#ff541c';ctx.shadowBlur=12+6*Math.sin(now*5);}
 if(bodySprite.complete&&bodySprite.naturalWidth&&bodySprite.naturalHeight){
  const aspect=bodySprite.naturalWidth/bodySprite.naturalHeight;
@@ -506,7 +507,7 @@ if(p.x>boss.x-750&&!chase.started){
  const bx=W*.27,bw=W*.55;
  ctx.fillStyle='#0b0d18';ctx.fillRect(bx,16,bw,21);
  ctx.fillStyle='#f43d47';ctx.fillRect(bx+3,19,(bw-6)*Math.max(0,1-boss.shots/boss.limit),15);
- ctx.fillStyle='white';ctx.font='bold 19px system-ui';ctx.fillText(hardcore?'THERMO':'BOSS',bx-63,34);
+ ctx.fillStyle='white';ctx.font='bold 19px system-ui';ctx.fillText(rainbow?'WORM':hardcore?'THERMO':'BOSS',bx-63,34);
  if(boss.beam&&boss.beam.elapsed<=(hardcore?.55:.38)){
   ctx.fillStyle='#ff5252';ctx.font='bold 28px system-ui';ctx.fillText(hardcore?'JUMP!':'⚠',W*.5,H*.55);
  }
@@ -553,7 +554,7 @@ function animateMenu(t){
  if(x>=115&&x<=235){const u=(x-115)/120;lift=-53*Math.sin(Math.PI*u)}
  menuRunner.setAttribute('transform','translate('+dx.toFixed(2)+' '+lift.toFixed(2)+')');
 }
-let rainbow=false,rocketStart=0,godIntro=0,godSeen=false,rainbowUnlocked=localStorage.getItem("rainbowUnlocked")==="1",rp,rhp,rt,ri,hitTime,shotTime,shots,prevJump=false;
+const prismSprite=new Image();prismSprite.src="data:image/svg+xml,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 210">${Array.from({length:7},(_,i)=>`<ellipse cx="${75+i*48}" cy="${100+i*10}" rx="49" ry="55" fill="${["#ff455d","#ff9d38","#ffe15a","#45e68a","#35caff","#8866ff","#f36de9"][i]}" stroke="#ffffff" stroke-width="3"/>`).reverse().join("")}<ellipse cx="62" cy="100" rx="48" ry="54" fill="#35134b" stroke="#f8baff" stroke-width="7"/>${Array.from({length:12},(_,i)=>`<path d="M56 51 L68 51 L62 75 Z" fill="white" transform="rotate(${i*30} 62 100)"/>`).join("")}</svg>`);let rainbow=false,rocketStart=0,godIntro=0,godSeen=false,rainbowUnlocked=localStorage.getItem("rainbowUnlocked")==="1",rp,rhp,rt,ri,hitTime,shotTime,shots,prevJump=false;
 const rainbowColors=["#ff455d","#ff9d38","#ffe15a","#45e68a","#35caff","#8866ff","#f36de9"];
 const rainbowPlatforms=Array.from({length:12},(_,i)=>({x:220+i*210,y:65+(i%3)*35,w:135,cloud:i>=7&&i<=9}));const rainbowGaps=[[720,830],[1150,1270],[1750,1870],[2190,2310]];const rainbowSpikes=[460,980,1450,2000,2470];let bridgeAt=0;function rainbowFail(){if(gameMode==="hardcore"&&!(hasPower("life")&&!lifeUsed)){active=false;showPauseButton(false);document.getElementById("title").textContent="GAME OVER";document.getElementById("mainMenu").classList.add("hidden");document.getElementById("gameOverMenu").classList.remove("hidden");overlay.classList.remove("hidden");}else{if(gameMode==="hardcore")lifeUsed=true;rp.x=rp.x>2600?2600:rp.x>1900?1900:rp.x>1300?1300:50;rp.y=ground-54;rp.v=0;rp.grounded=true;bridgeAt=0;}}
 document.getElementById("rainbowMenu").classList.remove("hidden");
@@ -604,7 +605,7 @@ ctx.restore(); // Character scale
 }
 function rainbowDraw(){const cam=Math.max(0,rp.x-W*.3),g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#8a71ef");g.addColorStop(1,"#ffe2fa");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);for(let i=0;i<7;i++){ctx.strokeStyle=rainbowColors[i];ctx.lineWidth=9;ctx.beginPath();ctx.arc(W*.7,H*.8,Math.max(30,H*.55-i*10),Math.PI,2*Math.PI);ctx.stroke();}ctx.save();ctx.translate(-cam,0);for(let i=0;i<40;i++){ctx.fillStyle=rainbowColors[i%7];ctx.fillRect(i*100,ground,100,H-ground);}for(const [a,b] of rainbowGaps){ctx.fillStyle="#281445";ctx.fillRect(a,ground,b-a,H-ground);}if(!bridgeAt||rt-bridgeAt<=1){ctx.fillStyle="#ffce70";ctx.fillRect(720,ground,110,12);}for(const [i,b] of rainbowPlatforms.entries()){if(b.cloud&&Math.sin(rt*2+b.x)>.65)continue;ctx.fillStyle=b.cloud?"#fff":rainbowColors[i%7];ctx.fillRect(b.x,ground-b.y,b.w,18);}for(const [i,x] of rainbowSpikes.entries()){let z=x+Math.sin(rt*2+i)*30;ctx.fillStyle="#6730b0";ctx.beginPath();ctx.moveTo(z-17,ground);ctx.lineTo(z,ground-36);ctx.lineTo(z+17,ground);ctx.fill();}if(Math.sin(rt*2.5)>.85){ctx.fillStyle="#fff66b";ctx.fillRect(2320,ground-65,110,65);}ctx.fillStyle="#fff";ctx.font="bold 16px sans-serif";for(const [x,label] of [[650,"COLLAPSING BRIDGE"],[950,"CRYSTAL SPIKES"],[1700,"VANISHING CLOUDS"],[2300,"RAINBOW STORM"]])ctx.fillText(label,x,ground-170);if(rhp&&ri){const rise=Math.max(0,Math.min(1,1-(ri-rt)/3));ctx.save();ctx.translate(0,(1-rise)*160);for(let i=6;i>=0;i--){ctx.fillStyle=rainbowColors[i];ctx.beginPath();ctx.ellipse(3100+i*22,ground-65+i*8,35,42,0,0,Math.PI*2);ctx.fill();}ctx.fillStyle="#29113f";ctx.beginPath();ctx.ellipse(3100,ground-65,33,35,0,0,Math.PI*2);ctx.fill();for(let i=0;i<12;i++){ctx.save();ctx.translate(3100,ground-65);ctx.rotate(i*Math.PI/6);ctx.fillStyle="white";ctx.beginPath();ctx.moveTo(-5,-31);ctx.lineTo(5,-31);ctx.lineTo(0,-15);ctx.fill();ctx.restore();}ctx.restore();}for(const q of shots){ctx.fillStyle="#ff28cf";ctx.beginPath();ctx.arc(q.x,q.y,12,0,Math.PI*2);ctx.fill();}drawStick({x:rp.x,y:rp.y,w:23,h:54,grounded:rp.grounded,vx:rp.vx||0,vy:rp.v,runPhase:rp.runPhase||0,grab:null,climb:null},rp.x+11.5,rp.y,rp.face||1);if(hasPower("jet")&&now<until("jet")&&keys.jump){ctx.fillStyle="#ffae35";ctx.beginPath();ctx.moveTo(rp.x+2,rp.y+35);ctx.lineTo(rp.x+12,rp.y+70+Math.sin(now*40)*8);ctx.lineTo(rp.x+22,rp.y+35);ctx.fill();}ctx.restore();if(ri&&rhp){ctx.fillStyle="#35194c";ctx.fillRect(W*.2,55,W*.6,30);ctx.fillStyle="#fff";ctx.font="bold 16px sans-serif";ctx.fillText("PRISM WORM  "+"♥".repeat(rhp),W*.25,76);}}
 function rocketDraw(t){const u=Math.min(1,(t-rocketStart)/8000);ctx.fillStyle="#10122f";ctx.fillRect(0,0,W,H);for(let i=0;i<80;i++){ctx.fillStyle="#fff";ctx.fillRect((i*97)%W,((i*53+t*.15)%H),2,2);}for(let i=0;i<7;i++){ctx.fillStyle=rainbowColors[i];ctx.beginPath();ctx.arc(W*.75,H*.25,Math.max(1,(25+u*65)*(1-i*.12)),0,Math.PI*2);ctx.fill();}ctx.font="65px sans-serif";ctx.fillText("🚀",W*(.1+u*.45),H*(.8-u*.5));ctx.font="bold 20px sans-serif";ctx.fillStyle="white";ctx.fillText("TO RAINBOW LAND",20,40);if(u>=1){document.getElementById("rocketSkip").classList.add("hidden");rainbowStart();}}
-function loop(t){try{musicUpdate()}catch(e){audioStatus.textContent='MUSIC ERROR: '+e.message;audioEnabled=false;audioToggle.textContent='🔊 AKTIFKAN MUSIK';}animateMenu(t);let dt=Math.min(.032,(t-last)/1000||0);last=t;if(rocketStart){rocketDraw(t);}else if(rainbow){if(active&&!paused)rainbowTick(dt);rainbowDraw();}else{if(active&&!paused)tick(dt);draw();if(godIntro>0){ctx.fillStyle="#0009";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff";ctx.font="bold 28px sans-serif";ctx.fillText("GODZILLA ARRIVES!",20,H*.4);}}requestAnimationFrame(loop)}
+function loop(t){try{musicUpdate()}catch(e){audioStatus.textContent='MUSIC ERROR: '+e.message;audioEnabled=false;audioToggle.textContent='🔊 AKTIFKAN MUSIK';}animateMenu(t);let dt=Math.min(.032,(t-last)/1000||0);last=t;if(rocketStart){rocketDraw(t);}else if(rainbow){if(active&&!paused)tick(dt);draw();if(godIntro>0){ctx.fillStyle="#0009";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff";ctx.font="bold 24px sans-serif";ctx.fillText("PRISM WORM ARRIVES!",20,H*.4);}}else{if(active&&!paused)tick(dt);draw();if(godIntro>0){ctx.fillStyle="#0009";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff";ctx.font="bold 28px sans-serif";ctx.fillText("GODZILLA ARRIVES!",20,H*.4);}}requestAnimationFrame(loop)}
 reset();requestAnimationFrame(loop);
 })();
 </script></body></html>
